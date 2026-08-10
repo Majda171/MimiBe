@@ -131,7 +131,7 @@ $$('[data-action="hospital"]').forEach(b=>b.addEventListener('click',()=>openChe
 
 $('#saveEvent').addEventListener('click',()=>{ const title=$('#eventTitleInput').value.trim(),date=$('#eventDateInput').value;if(!title||!date)return alert(i18nMsg('Vyplň název a datum.','Please enter a title and date.'));data.events.push({title,date,time:$('#eventTimeInput').value,place:$('#eventPlaceInput').value.trim()});persist();renderEvents();$('#eventTitleInput').value='';$('#eventDateInput').value='';$('#eventTimeInput').value='';$('#eventPlaceInput').value=''; });
 $('#saveNote').addEventListener('click',()=>{ const text=$('#noteInput').value.trim();if(!text)return;data.notes.push({text,date:new Intl.DateTimeFormat('cs-CZ',{day:'numeric',month:'long'}).format(new Date())});persist();renderNotes();$('#noteInput').value=''; });
-$('#saveSettings').addEventListener('click',()=>{ data.momName=$('#momName')?.value.trim()||'';data.babyName=$('#babyNameInput').value.trim();data.dueDate=$('#dueDateInput').value;data.theme=$('#themeSelect').value;persist();applyTheme();renderMomName();renderBabyName();updatePregnancy();nav('home'); });
+$('#saveSettings').addEventListener('click',()=>{ data.momName=$('#momName')?.value.trim()||'';data.babyName=$('#babyNameInput').value.trim();data.dueDate=$('#dueDateInput').value;data.theme=$('#themeSelect').value;persist();applyTheme();renderBabyName();updatePregnancy();nav('home'); });
 $('#deleteProfile').addEventListener('click',async()=>{
   const en=(localStorage.getItem('pregnancyPlannerLanguage')==='en');
   const ok=confirm(en
@@ -217,17 +217,18 @@ async function renderPhotos(){
 async function deletePhoto(id){if(!confirm(i18nMsg('Smazat tuto fotku?','Delete this photo?')))return;await photoDB.remove(id);renderPhotos();}
 window.deletePhoto=deletePhoto;
 
+// Výběr fotky je obsloužen samostatně níže pro galerii a fotoaparát.
+// Původní #photoFileInput už v HTML není, proto na něj zde záměrně nesaháme.
 $('#savePhoto').addEventListener('click',async()=>{
   if(!selectedPhotoData)return alert(i18nMsg('Nejdřív vyber fotku.','Please choose a photo first.'));
   await photoDB.add({type:$('#photoTypeInput').value,date:$('#photoDateInput').value||new Date().toISOString().slice(0,10),caption:$('#photoCaptionInput').value.trim(),image:selectedPhotoData,createdAt:Date.now()});
-  selectedPhotoData=''; if($('#photoGalleryInput')) $('#photoGalleryInput').value=''; if($('#photoCameraInput')) $('#photoCameraInput').value=''; $('#photoCaptionInput').value='';$('#photoPreview').src='';$('#photoPreviewWrap').classList.add('hidden');
+  selectedPhotoData='';$('#photoCaptionInput').value='';$('#photoPreview').src='';$('#photoPreviewWrap').classList.add('hidden');
   renderPhotos();
 });
 $$('[data-photo-filter]').forEach(btn=>btn.addEventListener('click',()=>{currentPhotoFilter=btn.dataset.photoFilter;$$('[data-photo-filter]').forEach(b=>b.classList.toggle('active',b===btn));renderPhotos();}));
 
 async function init(){
   applyTheme();
-  if($('#momName')) $('#momName').value=data.momName||'';
   $('#babyNameInput').value=data.babyName||'';
   $('#dueDateInput').value=data.dueDate;
   $('#themeSelect').value=data.theme;
@@ -1062,50 +1063,18 @@ document.addEventListener('click',e=>{
 
 
 // PWA 1.2 — explicit gallery / camera choice
-function mimiReadImageFile(file){
-  return new Promise((resolve,reject)=>{
-    const reader=new FileReader();
-    reader.onload=()=>resolve(String(reader.result||''));
-    reader.onerror=reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-async function mimiHandleSelectedPhotoFiles(fileList){
-  const files=[...fileList].filter(f=>f.type?.startsWith('image/'));
-  if(!files.length)return;
-
-  // For the first image, preserve the existing "new memory" form workflow.
-  const firstData=await mimiReadImageFile(files[0]);
-  selectedPhotoData=firstData;
-
-  const preview=document.querySelector('#photoPreview, .photo-preview img, [data-photo-preview]');
-  if(preview){
-    if(preview.tagName==='IMG') preview.src=firstData;
-    else preview.style.backgroundImage=`url("${firstData}")`;
-    document.getElementById('photoPreviewWrap')?.classList.remove('hidden');
-  }
-
-  // If multiple images were selected, add the additional ones directly as memories.
-  // The first remains in the form so the user may add caption/category/date as before.
-  if(files.length>1){
-    try{
-      if(!photoDB.db) await photoDB.open();
-      const today=new Date().toISOString().slice(0,10);
-      for(let i=1;i<files.length;i++){
-        const image=await mimiReadImageFile(files[i]);
-        await photoDB.add({
-          image,
-          caption:'',
-          category:'',
-          date:today,
-          createdAt:Date.now()+i
-        });
-      }
-      if(typeof renderPhotos==='function') await renderPhotos();
-    }catch(err){
-      console.warn('MimiBe multiple-photo import:',err);
-    }
+async function mimiHandleSelectedPhoto(fileInput){
+  const file=fileInput?.files?.[0];
+  if(!file)return;
+  try{
+    selectedPhotoData=await compressImage(file);
+    $('#photoPreview').src=selectedPhotoData;
+    $('#photoPreviewWrap').classList.remove('hidden');
+  }catch(err){
+    console.warn('MimiBe photo import:',err);
+    alert(i18nMsg('Fotku se nepodařilo načíst.','The photo could not be loaded.'));
+  }finally{
+    fileInput.value='';
   }
 }
 
@@ -1120,7 +1089,7 @@ document.addEventListener('click',e=>{
 
 document.addEventListener('change',e=>{
   if(e.target?.id==='photoGalleryInput' || e.target?.id==='photoCameraInput'){
-    mimiHandleSelectedPhotoFiles(e.target.files).catch(console.error);
-    e.target.value='';
+    mimiHandleSelectedPhoto(e.target);
   }
 },true);
+
