@@ -1063,3 +1063,67 @@ document.addEventListener('click',e=>{
   if(e.target.closest('#closeMemoryVideo,#cancelMemoryVideo'))closeMemoryVideoDialog();
   if(e.target.closest('#generateMemoryVideo'))generateAutomaticMemoryVideo();
 });
+
+
+// PWA 1.2 — explicit gallery / camera choice
+function mimiReadImageFile(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(String(reader.result||''));
+    reader.onerror=reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function mimiHandleSelectedPhotoFiles(fileList){
+  const files=[...fileList].filter(f=>f.type?.startsWith('image/'));
+  if(!files.length)return;
+
+  // For the first image, preserve the existing "new memory" form workflow.
+  const firstData=await mimiReadImageFile(files[0]);
+  selectedPhotoData=firstData;
+
+  const preview=document.querySelector('#photoPreview, .photo-preview img, [data-photo-preview]');
+  if(preview){
+    if(preview.tagName==='IMG') preview.src=firstData;
+    else preview.style.backgroundImage=`url("${firstData}")`;
+  }
+
+  // If multiple images were selected, add the additional ones directly as memories.
+  // The first remains in the form so the user may add caption/category/date as before.
+  if(files.length>1){
+    try{
+      if(!photoDB.db) await photoDB.open();
+      const today=new Date().toISOString().slice(0,10);
+      for(let i=1;i<files.length;i++){
+        const image=await mimiReadImageFile(files[i]);
+        await photoDB.add({
+          image,
+          caption:'',
+          category:'',
+          date:today,
+          createdAt:Date.now()+i
+        });
+      }
+      if(typeof renderPhotos==='function') await renderPhotos();
+    }catch(err){
+      console.warn('MimiBe multiple-photo import:',err);
+    }
+  }
+}
+
+document.addEventListener('click',e=>{
+  if(e.target.closest('#chooseFromGallery')){
+    document.getElementById('photoGalleryInput')?.click();
+  }
+  if(e.target.closest('#takePhoto')){
+    document.getElementById('photoCameraInput')?.click();
+  }
+});
+
+document.addEventListener('change',e=>{
+  if(e.target?.id==='photoGalleryInput' || e.target?.id==='photoCameraInput'){
+    mimiHandleSelectedPhotoFiles(e.target.files).catch(console.error);
+    e.target.value='';
+  }
+},true);

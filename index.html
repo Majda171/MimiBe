@@ -155,7 +155,14 @@
         <input id="photoDateInput" type="date" />
         <label>Fotka</label>
         <label class="upload-box" for="photoFileInput"><span>＋</span><strong>Vybrat nebo vyfotit</strong><small>JPG, PNG nebo fotka z fotoaparátu</small></label>
-        <input id="photoFileInput" type="file" accept="image/*" capture="environment" hidden />
+        
+<div class="photo-source-picker">
+  <button type="button" class="secondary photo-source-btn" id="chooseFromGallery">🖼️ <span>Vybrat z galerie</span></button>
+  <button type="button" class="secondary photo-source-btn" id="takePhoto">📷 <span>Vyfotit</span></button>
+</div>
+<input id="photoGalleryInput" type="file" accept="image/*" multiple hidden>
+<input id="photoCameraInput" type="file" accept="image/*" capture="environment" hidden>
+
         <div id="photoPreviewWrap" class="photo-preview-wrap hidden"><img id="photoPreview" alt="Náhled fotky" /></div>
         <input id="photoCaptionInput" placeholder="Krátký popisek (volitelné)" />
         <button class="primary" id="savePhoto">Uložit vzpomínku</button>

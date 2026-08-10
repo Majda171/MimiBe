@@ -1,4 +1,4 @@
-const CACHE='mimibe-v2-video';
+const CACHE='mimibe-v3-gallery';
 const APP_SHELL=["./", "./index.html", "./style.css", "./app.js", "./manifest.webmanifest", "./assets/baby-neutral.webp", "./assets/baby-pink.webp", "./assets/baby-blue.webp", "./pwa-icons/icon-192.png", "./pwa-icons/icon-512.png"];
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(APP_SHELL)));
