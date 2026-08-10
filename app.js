@@ -217,15 +217,10 @@ async function renderPhotos(){
 async function deletePhoto(id){if(!confirm(i18nMsg('Smazat tuto fotku?','Delete this photo?')))return;await photoDB.remove(id);renderPhotos();}
 window.deletePhoto=deletePhoto;
 
-$('#photoFileInput').addEventListener('change',async e=>{
-  const file=e.target.files?.[0];if(!file)return;
-  try{selectedPhotoData=await compressImage(file);$('#photoPreview').src=selectedPhotoData;$('#photoPreviewWrap').classList.remove('hidden');}
-  catch{alert(i18nMsg('Fotku se nepodařilo načíst.','The photo could not be loaded.'));}
-});
 $('#savePhoto').addEventListener('click',async()=>{
   if(!selectedPhotoData)return alert(i18nMsg('Nejdřív vyber fotku.','Please choose a photo first.'));
   await photoDB.add({type:$('#photoTypeInput').value,date:$('#photoDateInput').value||new Date().toISOString().slice(0,10),caption:$('#photoCaptionInput').value.trim(),image:selectedPhotoData,createdAt:Date.now()});
-  selectedPhotoData='';$('#photoFileInput').value='';$('#photoCaptionInput').value='';$('#photoPreview').src='';$('#photoPreviewWrap').classList.add('hidden');
+  selectedPhotoData=''; if($('#photoGalleryInput')) $('#photoGalleryInput').value=''; if($('#photoCameraInput')) $('#photoCameraInput').value=''; $('#photoCaptionInput').value='';$('#photoPreview').src='';$('#photoPreviewWrap').classList.add('hidden');
   renderPhotos();
 });
 $$('[data-photo-filter]').forEach(btn=>btn.addEventListener('click',()=>{currentPhotoFilter=btn.dataset.photoFilter;$$('[data-photo-filter]').forEach(b=>b.classList.toggle('active',b===btn));renderPhotos();}));
@@ -1087,6 +1082,7 @@ async function mimiHandleSelectedPhotoFiles(fileList){
   if(preview){
     if(preview.tagName==='IMG') preview.src=firstData;
     else preview.style.backgroundImage=`url("${firstData}")`;
+    document.getElementById('photoPreviewWrap')?.classList.remove('hidden');
   }
 
   // If multiple images were selected, add the additional ones directly as memories.
