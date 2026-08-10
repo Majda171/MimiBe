@@ -131,7 +131,7 @@ $$('[data-action="hospital"]').forEach(b=>b.addEventListener('click',()=>openChe
 
 $('#saveEvent').addEventListener('click',()=>{ const title=$('#eventTitleInput').value.trim(),date=$('#eventDateInput').value;if(!title||!date)return alert(i18nMsg('Vyplň název a datum.','Please enter a title and date.'));data.events.push({title,date,time:$('#eventTimeInput').value,place:$('#eventPlaceInput').value.trim()});persist();renderEvents();$('#eventTitleInput').value='';$('#eventDateInput').value='';$('#eventTimeInput').value='';$('#eventPlaceInput').value=''; });
 $('#saveNote').addEventListener('click',()=>{ const text=$('#noteInput').value.trim();if(!text)return;data.notes.push({text,date:new Intl.DateTimeFormat('cs-CZ',{day:'numeric',month:'long'}).format(new Date())});persist();renderNotes();$('#noteInput').value=''; });
-$('#saveSettings').addEventListener('click',()=>{ data.momName=$('#momName')?.value.trim()||'';data.babyName=$('#babyNameInput').value.trim();data.dueDate=$('#dueDateInput').value;data.theme=$('#themeSelect').value;persist();applyTheme();renderBabyName();updatePregnancy();nav('home'); });
+$('#saveSettings').addEventListener('click',()=>{ data.momName=$('#momName')?.value.trim()||'';data.babyName=$('#babyNameInput').value.trim();data.dueDate=$('#dueDateInput').value;data.theme=$('#themeSelect').value;persist();applyTheme();renderMomName();renderBabyName();updatePregnancy();nav('home'); });
 $('#deleteProfile').addEventListener('click',async()=>{
   const en=(localStorage.getItem('pregnancyPlannerLanguage')==='en');
   const ok=confirm(en
@@ -227,6 +227,7 @@ $$('[data-photo-filter]').forEach(btn=>btn.addEventListener('click',()=>{current
 
 async function init(){
   applyTheme();
+  if($('#momName')) $('#momName').value=data.momName||'';
   $('#babyNameInput').value=data.babyName||'';
   $('#dueDateInput').value=data.dueDate;
   $('#themeSelect').value=data.theme;
