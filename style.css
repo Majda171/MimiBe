@@ -1,0 +1,1377 @@
+:root{--bg:#f7f3ed;--card:#fffdf9;--text:#272626;--muted:#7e7972;--accent:#b59a79;--accent2:#ded2c4;--soft:#efe8df;--line:#e9e1d8;--success:#93a88b}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}body{display:flex;justify-content:center}.app-shell{width:100%;max-width:460px;min-height:100vh;padding:env(safe-area-inset-top) 18px calc(92px + env(safe-area-inset-bottom));background:linear-gradient(180deg,#fbf8f4 0%,var(--bg) 100%)}.topbar{display:flex;justify-content:space-between;align-items:center;padding:22px 4px 18px}.hello{font-family:Georgia,serif;font-style:italic;font-size:29px}.subhello{margin-top:5px;color:#444}.icon-btn,.back,.chevron,.text-btn{border:0;background:none;color:inherit}.icon-btn{width:44px;height:44px;border-radius:50%;background:var(--soft);font-size:20px}.card{background:rgba(255,255,255,.72);border:1px solid rgba(183,166,147,.25);box-shadow:0 8px 28px rgba(95,77,58,.06);border-radius:24px}.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:14px;padding:28px 22px;align-items:center}.eyebrow{color:#66625e}.hero h1{font-size:34px;margin:8px 0}.pill{display:inline-block;background:var(--soft);color:var(--accent);font-weight:700;padding:8px 14px;border-radius:99px}.divider{height:1px;background:var(--line);margin:24px 0 18px}.days-left{font-size:28px;font-weight:800;margin-top:5px}.due-date{margin-top:6px;font-size:14px;color:#5f5a55}.progress-ring{width:150px;aspect-ratio:1;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:conic-gradient(var(--accent) 0deg,var(--accent) 0deg,var(--soft) 0deg);position:relative;margin:auto}.progress-ring:after{content:"";position:absolute;inset:11px;border-radius:50%;background:var(--card)}.baby-mark,.progress-value{z-index:1}.baby-mark{font-size:30px;color:var(--accent)}.progress-value{display:flex;flex-direction:column;align-items:center}.progress-value strong{font-size:20px}.progress-value span{font-size:12px;color:var(--muted)}.next-event{margin-top:18px;padding:18px;display:grid;grid-template-columns:72px 1fr 34px;align-items:center;gap:14px}.date-box{background:var(--soft);border-radius:18px;text-align:center;padding:12px 6px}.date-box strong{display:block;font-size:28px}.date-box span{font-size:12px;color:var(--muted)}.event-copy{display:flex;flex-direction:column;gap:4px}.event-copy strong{font-size:17px}.event-copy span{font-size:14px;color:var(--muted)}.chevron{font-size:38px}.section-head{display:flex;justify-content:space-between;align-items:center;margin:24px 2px 12px}.section-head h2{font-size:18px;margin:0}.text-btn{color:var(--muted)}.quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.quick{border:0;background:transparent;font-size:12px;color:var(--text);display:flex;flex-direction:column;align-items:center;gap:8px}.quick span{width:58px;height:58px;border-radius:18px;background:var(--card);border:1px solid var(--line);display:grid;place-items:center;font-size:24px;color:var(--accent)}.checklist-card,.note-preview{margin-top:20px;padding:4px 18px 18px}.check-row{display:flex;gap:14px;align-items:center;padding:12px 0}.circle-icon{width:48px;height:48px;border-radius:50%;background:var(--soft);display:grid;place-items:center}.check-content{flex:1}.check-title{display:flex;justify-content:space-between;margin-bottom:8px}.check-title span{color:var(--muted)}.bar{height:8px;background:#ece8e3;border-radius:99px;overflow:hidden}.bar i{display:block;height:100%;width:0;background:var(--success);border-radius:99px}.muted{color:var(--muted)}.view{display:none}.view.active{display:block}.page-head{display:flex;align-items:center;gap:12px;padding:12px 0 18px}.page-head h2{margin:0;font-size:24px}.back{font-size:36px}.form-card{padding:18px;display:flex;flex-direction:column;gap:12px}.form-card input,.form-card textarea,.form-card select,.add-line input{width:100%;border:1px solid var(--line);background:#fff;border-radius:14px;padding:13px;font:inherit}.primary,.add-line button{border:0;background:var(--accent);color:#fff;border-radius:14px;padding:13px 16px;font-weight:700}.stack{display:flex;flex-direction:column;gap:12px;margin-top:14px}.item-card{padding:16px}.item-card small{color:var(--muted)}.bottom-nav{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:min(100%,460px);background:rgba(255,255,255,.94);backdrop-filter:blur(16px);display:grid;grid-template-columns:repeat(5,1fr);align-items:end;padding:10px 12px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}.nav-btn{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:19px;color:#777}.nav-btn span{font-size:11px}.nav-btn.active{color:var(--accent)}.plus-btn{width:62px;height:62px;border-radius:50%;border:0;background:var(--accent);color:#fff;font-size:34px;transform:translateY(-16px);box-shadow:0 8px 20px rgba(80,60,40,.18)}dialog{width:min(92vw,420px);border:0;border-radius:24px;padding:20px;background:var(--card);color:var(--text)}dialog::backdrop{background:rgba(0,0,0,.3)}.dialog-head{display:flex;align-items:center;justify-content:space-between}.dialog-head h3{margin:0}.dialog-head button{border:0;background:none;font-size:20px}.checklist-items{display:flex;flex-direction:column;gap:10px;margin:18px 0}.checklist-items label{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}.add-line{display:flex;gap:8px}.add-line button{white-space:nowrap}@media(max-width:380px){.hero{grid-template-columns:1fr}.progress-ring{width:138px}.quick-grid{grid-template-columns:repeat(2,1fr)}}
+.nameday{margin-top:4px;font-size:13px;color:var(--muted)}
+.baby-name-card{margin-bottom:14px;padding:14px 16px;display:flex;align-items:center;gap:12px}
+.baby-name-icon{width:42px;height:42px;border-radius:50%;background:var(--soft);display:grid;place-items:center;color:var(--accent);font-size:24px}
+.baby-name-card>div{display:flex;flex-direction:column;flex:1}.baby-name-card small{color:var(--muted);font-size:12px}.baby-name-card strong{font-size:17px;margin-top:2px}
+.quick-grid{grid-template-columns:repeat(5,1fr)}
+.helper{color:var(--muted);margin-top:-7px;font-size:12px}
+.upload-box{border:1.5px dashed var(--accent2);background:var(--soft);border-radius:18px;padding:20px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;cursor:pointer;color:var(--text)}
+.upload-box span{font-size:30px;color:var(--accent)}.upload-box small{color:var(--muted);font-weight:400}
+.photo-preview-wrap{overflow:hidden;border-radius:18px;background:var(--soft);aspect-ratio:4/3}.photo-preview-wrap img{width:100%;height:100%;object-fit:cover;display:block}.hidden{display:none!important}
+.photo-filter{display:flex;gap:8px;margin:16px 0;overflow-x:auto;padding:2px 1px 8px;scrollbar-width:none}.photo-filter::-webkit-scrollbar{display:none}.filter-btn{border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:99px;padding:9px 14px;font-weight:600}.filter-btn.active{background:var(--accent);color:white;border-color:var(--accent)}
+.photos-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.photo-card{position:relative;background:var(--card);border:1px solid var(--line);border-radius:20px;overflow:hidden}.photo-card img{width:100%;aspect-ratio:1;object-fit:cover;display:block}.photo-card-copy{padding:10px}.photo-card-copy strong{display:block;font-size:13px}.photo-card-copy small{color:var(--muted);font-size:11px}.photo-card .delete-photo{position:absolute;right:8px;top:8px;width:31px;height:31px;border:0;border-radius:50%;background:rgba(255,255,255,.9);font-size:15px}.empty-photos{grid-column:1/-1;text-align:center;padding:35px 18px;color:var(--muted)}
+@media(max-width:380px){.quick-grid{grid-template-columns:repeat(3,1fr)}}
+
+.optional{font-weight:400;color:var(--muted);font-size:.88em}
+.photo-filter .filter-btn{flex:0 0 auto}
+
+.checklist-item{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line)}
+.checklist-item label{flex:1;border-bottom:0;margin:0}
+.delete-checklist-item{width:34px;height:34px;flex:0 0 34px;border:0;border-radius:50%;background:#f7efec;color:#a55b52;font-size:14px}
+.danger-zone{margin-top:20px;padding:18px;border-color:#eed3ce;background:#fffaf8}
+.danger-zone h3{margin:0 0 8px;color:#934f48}
+.danger-zone p{margin:0 0 8px;color:var(--muted);font-size:14px;line-height:1.45}
+.danger-zone strong{display:block;color:#934f48;font-size:13px;margin-bottom:14px}
+.danger-btn{width:100%;border:1px solid #c77e74;background:#fff;color:#a14f47;border-radius:14px;padding:13px 16px;font-weight:700}
+
+/* Custom SVG icon set */
+.icon-btn img { width: 23px; height: 23px; display:block; }
+.quick img { width: 31px; height: 31px; display:block; margin:auto; }
+.circle-icon img { width: 25px; height: 25px; display:block; }
+.nav-btn > img { width: 23px; height: 23px; display:block; margin:0 auto 4px; }
+.plus-btn img { width: 27px; height: 27px; display:block; }
+/* SVG files use currentColor internally when embedded inline; external img keeps their neutral master stroke. */
+
+/* v6: two-tone icons + memories */
+:root{--icon-dark:#5c5148;--icon-accent:#b59a79;--icon-soft:#efe6dc}
+.nav-btn img,.quick img,.circle-icon img,.icon-btn img{width:25px;height:25px}
+.bottom-nav{align-items:center}
+.nav-btn{font-size:16px;padding:4px 1px}
+.memory-maker{margin-top:16px;padding:18px}.memory-maker h3{margin:4px 0 6px}.memory-maker p{margin:0 0 14px;color:var(--muted);font-size:14px}.secondary{border:1px solid var(--accent);background:transparent;color:var(--accent);border-radius:14px;padding:12px 15px;font-weight:700;margin-top:9px}.support-zone{margin-top:18px;padding:18px}.support-zone h3{margin:0 0 5px}.support-zone p{color:var(--muted);font-size:14px}.support-icon{font-size:30px}.memory-dialog{padding:0;background:#171513;width:min(94vw,430px);height:min(82vh,720px);overflow:hidden}.memory-stage{height:100%;position:relative;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:28px 18px;color:white}.memory-stage img{max-width:100%;max-height:70%;object-fit:contain;border-radius:20px;opacity:1;transition:opacity .35s}.memory-close{position:absolute;right:15px;top:15px;border:0;background:rgba(255,255,255,.15);color:white;width:38px;height:38px;border-radius:50%}.memory-title{position:absolute;top:24px;left:20px;font-family:Georgia,serif;font-size:20px}.memory-caption{margin-top:12px;text-align:center}.memory-counter{position:absolute;bottom:18px;font-size:12px;opacity:.75}
+
+/* v7 — restored dashboard quick-note button */
+.quick-note-row{display:flex;align-items:center;gap:14px;margin:16px 0 4px}.quick-note-row>div{display:flex;flex-direction:column;gap:2px}.quick-note-row small{color:var(--muted);font-size:12px}.big-note-plus{width:62px;height:62px;flex:0 0 62px;border-radius:50%;border:0;background:var(--accent);color:white;box-shadow:0 8px 22px rgba(80,65,50,.14);display:grid;place-items:center}.big-note-plus span{font-size:38px;line-height:1;font-weight:300;margin-top:-3px}.big-note-plus:active{transform:scale(.97)}
+
+/* v8 visual direction */
+.note-hero{display:flex;flex-direction:column;align-items:center;text-align:center;padding:18px 8px 12px;gap:5px}.note-hero .big-note-plus{width:104px;height:104px;flex-basis:104px;border:6px solid rgba(255,255,255,.85);box-shadow:0 12px 30px color-mix(in srgb,var(--accent) 32%,transparent)}.note-hero .big-note-plus span{font-size:60px}.note-hero strong{font-size:18px;margin-top:5px}.note-hero small{color:var(--muted);font-size:13px}.custom-pregnancy-illustration{width:90px;height:90px;flex:0 0 90px}.custom-pregnancy-illustration img{width:100%;height:100%;object-fit:contain}.quick img,.nav-btn img,.circle-icon img{width:29px;height:29px}.quick{min-height:72px}.bottom-nav .nav-btn img{width:28px;height:28px}#greetingName{font-family:inherit}.settings-card input#momName{margin-top:6px}
+
+#quickNoteBlock{display:flex!important;visibility:visible!important;opacity:1!important;flex-direction:column;align-items:center;justify-content:center;text-align:center;margin:18px 0 20px;padding:10px 0;gap:6px}#quickNoteBlock .big-note-plus{display:flex!important;align-items:center;justify-content:center;width:108px!important;height:108px!important;min-width:108px;border-radius:999px;border:6px solid #fff;background:var(--accent,#c5a57d)!important;color:#fff!important;font:300 64px/1 Arial,sans-serif;box-shadow:0 10px 28px rgba(70,55,45,.18);cursor:pointer}#quickNoteBlock strong{font-size:18px}#quickNoteBlock small{font-size:13px;color:var(--muted)}
+
+/* v10 — original floating center plus in bottom navigation */
+.bottom-nav{display:grid!important;grid-template-columns:1fr 1fr 76px 1fr 1fr!important;align-items:end!important;overflow:visible!important;padding:8px 8px calc(8px + env(safe-area-inset-bottom))!important}.nav-center-plus{position:relative;align-self:start;justify-self:center;width:66px;height:66px;margin-top:-28px;border-radius:50%;border:6px solid var(--surface,#fff);background:var(--accent,#c5a57d);color:white;box-shadow:0 7px 20px rgba(61,49,40,.22);display:flex;align-items:center;justify-content:center;z-index:5;cursor:pointer}.nav-center-plus span{font:300 44px/1 Arial,sans-serif;margin-top:-3px}.nav-center-plus:active{transform:scale(.96)}
+
+/* v14 — last uploaded photo on Home */
+.last-memory-card{margin-top:16px;padding:18px;cursor:pointer}
+.last-memory-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.last-memory-head h3{margin:2px 0 0;font-size:19px}
+.last-memory-head small{color:var(--muted)}
+.last-memory-head .chevron{font-size:34px;line-height:1;color:var(--text)}
+.last-memory-empty{color:var(--muted);font-size:14px;padding:10px 0}
+.last-memory-content{display:block}
+.last-memory-image-wrap{position:relative;border-radius:18px;overflow:hidden;aspect-ratio:16/10;background:var(--soft)}
+.last-memory-image-wrap img{width:100%;height:100%;display:block;object-fit:cover}
+.last-memory-date{position:absolute;top:10px;right:10px;background:var(--accent);color:#fff;border-radius:999px;padding:7px 11px;font-size:12px;font-weight:700;box-shadow:0 4px 12px rgba(0,0,0,.1)}
+.last-memory-caption{margin-top:10px;font-size:14px;font-weight:600}
+
+/* v16 icon accent colors */
+:root{--icon-accent:#C9A77C}
+body[data-theme="neutral"]{--icon-accent:#C9A77C}
+body[data-theme="pink"]{--icon-accent:#FF8FB1}
+body[data-theme="blue"]{--icon-accent:#89CFF0}
+.app-svg-icon{width:30px;height:30px;display:block}
+
+/* v18 — UI/UX polish */
+:root{
+  --theme-soft:#f3ebe2;
+  --theme-soft-2:#eadccf;
+}
+body[data-theme="neutral"]{--accent:#C9A77C;--theme-soft:#F4ECE3;--theme-soft-2:#EADBCB}
+body[data-theme="pink"]{--accent:#FF8FB1;--theme-soft:#FFF0F5;--theme-soft-2:#FFD9E5}
+body[data-theme="blue"]{--accent:#89CFF0;--theme-soft:#EFF9FE;--theme-soft-2:#D9F0FB}
+.primary{min-height:48px;border-radius:15px}
+button,.nav-btn,.quick,.icon-btn{min-height:44px}
+.nav-btn.active{color:var(--accent)}
+.nav-btn.active img,.nav-btn.active .app-svg-icon{filter:none}
+.card{border:1px solid color-mix(in srgb,var(--accent) 10%,transparent)}
+.last-memory-card{background:linear-gradient(180deg,#fff,var(--theme-soft));margin:14px 0}
+.last-memory-date{background:var(--accent)}
+.quick{border-radius:18px}
+.quick:active,.card[role="button"]:active{transform:scale(.99)}
+.video-maker-card{display:grid;grid-template-columns:52px 1fr;gap:12px;align-items:start;background:linear-gradient(135deg,var(--theme-soft),#fff)}
+.video-maker-card .video-maker-icon{width:48px;height:48px;border-radius:15px;background:var(--theme-soft-2);display:grid;place-items:center}
+.video-maker-card .video-maker-icon .app-svg-icon{width:30px;height:30px}
+.video-maker-card .primary{grid-column:1/-1;width:100%}
+.settings-section-title{font-size:14px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:24px 4px 8px}
+.danger-title{color:#a45d5d}
+.photos-grid:empty::before{content:"Zatím tu nemáš žádnou vzpomínku. Přidej první fotku ♡";display:block;color:var(--muted);padding:22px 8px;text-align:center;grid-column:1/-1}
+
+/* v19 — language selection */
+.language-splash{position:fixed;inset:0;z-index:9999;background:linear-gradient(160deg,#fbf7f2,#f3e8dc);display:grid;place-items:center;padding:24px}
+.language-splash[hidden]{display:none}
+.language-card{width:min(100%,390px);background:#fff;border-radius:30px;padding:34px 24px;box-shadow:0 20px 60px rgba(69,54,42,.14);text-align:center}
+.language-logo-mark{width:78px;height:78px;border-radius:24px;margin:0 auto 14px;background:#ead9c7;display:grid;place-items:center;font-size:44px;color:#5a4d44}
+.language-logo h1{font-family:Georgia,serif;font-size:26px;margin:0}.language-logo p{margin:5px 0 25px;color:var(--muted)}
+.language-card h2{font-size:15px;font-weight:600;margin-bottom:16px}
+.language-options{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.language-choice{min-height:108px;border:1px solid #e8ddd2;background:#fff;border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-size:15px}
+.language-choice:active{transform:scale(.98)}.flag{font-size:34px}
+.settings-language-buttons{display:flex;gap:8px;margin-top:12px}
+.language-mini{flex:1;border:1px solid var(--accent);background:#fff;border-radius:13px;padding:10px 8px}
+.language-mini.active{background:var(--theme-soft);font-weight:700}
+
+/* v20 — MimiBe welcome branding */
+.mimibe-welcome-logo{
+  width:190px;
+  max-width:72%;
+  aspect-ratio:1/1;
+  object-fit:cover;
+  object-position:center 38%;
+  border-radius:28px;
+  display:block;
+  margin:0 auto 14px;
+}
+.language-logo h1{font-size:31px;margin-top:4px}
+.language-logo p{margin:4px 0 3px;color:var(--muted);font-size:14px}
+.madlaart-credit{display:block;color:#9a8879;margin-bottom:24px;font-size:12px;letter-spacing:.04em}
+
+/* v26 — reliable single SVG set: icons are inline, no fetch/file:// issue */
+:root{--icon-accent:#C9A77C}
+body[data-theme="neutral"]{--icon-accent:#C9A77C}
+body[data-theme="pink"]{--icon-accent:#FF5F98}
+body[data-theme="blue"]{--icon-accent:#89CFF0}
+.app-svg-icon{
+  display:inline-flex;
+  width:30px;
+  height:30px;
+  align-items:center;
+  justify-content:center;
+  vertical-align:middle;
+}
+.app-svg-icon .inline-app-svg{
+  width:100%;
+  height:100%;
+  display:block;
+  overflow:visible;
+}
+.app-svg-icon .icon-line{stroke:#111!important}
+.app-svg-icon .icon-fill{fill:#fff!important;stroke:#111!important}
+.app-svg-icon .icon-accent{fill:var(--icon-accent)!important;stroke:#111!important}
+.nav-btn .app-svg-icon{width:28px;height:28px}
+.quick .app-svg-icon{width:30px;height:30px}
+
+/* v28 — vlastní finální ikonky */
+.user-final-icon{display:inline-flex;align-items:center;justify-content:center}
+.user-final-icon svg{width:100%;height:100%;display:block;overflow:visible}
+.user-final-icon .icon-main{fill:#1a1a1a!important}
+.user-final-icon .icon-accent{fill:var(--icon-accent)!important}
+body[data-theme="neutral"]{--icon-accent:#C9A77C}
+body[data-theme="pink"]{--icon-accent:#FF5F98}
+body[data-theme="blue"]{--icon-accent:#89CFF0}
+
+/* v31 — welcome + restored Home baby illustration */
+.language-splash{
+  background:linear-gradient(160deg,#fff9f8 0%,#fdf2f0 52%,#fbecea 100%)!important;
+}
+.welcome-brand{display:flex;flex-direction:column;align-items:center}
+.welcome-mimibe-logo{width:210px;max-width:78%;height:auto;margin:0 auto 10px}
+.welcome-baby-art{width:190px;height:190px;object-fit:contain;margin:0 auto 8px}
+.welcome-by{display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:20px;color:#8f7a70;font-size:12px}
+.welcome-by img{width:86px;height:auto;opacity:.86}
+.language-card h2 span{font-weight:400;color:#9b8980}
+.home-mini-logo{width:92px;height:auto;display:block;margin:2px 0 8px 2px;opacity:.86}
+.home-baby-illustration{display:flex;justify-content:center;align-items:center;margin:2px auto 8px}
+.home-baby-illustration img{width:170px;height:170px;object-fit:contain;display:block}
+@media(max-width:380px){.home-baby-illustration img{width:150px;height:150px}}
+
+/* v33 — branding in About */
+.about-madlaart-final{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  padding:14px 0 18px;
+}
+.about-mimibe-logo-final{width:145px;max-width:55%;height:auto;display:block}
+.about-created-by{display:flex;align-items:center;justify-content:center;gap:7px;color:var(--muted);font-size:12px}
+.about-created-by img{width:88px;height:auto;display:block;opacity:.9}
+
+/* v47 — baby illustration belongs to the baby profile card; progress stays separate */
+.baby-profile-illustration{
+  width:72px;
+  height:72px;
+  object-fit:contain;
+  display:block;
+  margin:8px 0 6px auto;
+  filter:drop-shadow(0 7px 14px rgba(114,84,67,.08));
+}
+@media(max-width:380px){
+  .baby-profile-illustration{width:62px;height:62px}
+}
+
+/* v50 — layout matched to user's marked screenshot */
+.hero{position:relative;min-height:390px}
+.pregnancy-baby-illustration{
+  position:absolute;
+  right:20px;
+  top:62px;
+  width:145px;
+  height:145px;
+  object-fit:contain;
+  z-index:1;
+  filter:drop-shadow(0 7px 14px rgba(116,82,66,.08));
+}
+.progress-ring{
+  position:absolute;
+  right:27px;
+  top:215px;
+  width:118px;
+  height:118px;
+  z-index:2;
+  background:rgba(255,255,255,.96);
+}
+.hero .due{
+  position:absolute;
+  left:22px;
+  right:22px;
+  bottom:22px;
+  width:auto;
+}
+@media(max-width:390px){
+  .hero{min-height:382px}
+  .pregnancy-baby-illustration{right:13px;top:68px;width:132px;height:132px}
+  .progress-ring{right:20px;top:211px;width:108px;height:108px}
+}
+
+/* v51 — user-requested +15% baby illustration */
+.pregnancy-baby-illustration{
+  width:167px !important;
+  height:167px !important;
+}
+@media(max-width:390px){
+  .pregnancy-baby-illustration{
+    width:152px !important;
+    height:152px !important;
+  }
+}
+
+/* v54 — pregnancy progress as a horizontal strip, not a circle */
+.hero{
+  padding-bottom:78px !important;
+}
+.progress-ring{
+  position:absolute !important;
+  left:22px !important;
+  right:22px !important;
+  bottom:18px !important;
+  top:auto !important;
+  width:auto !important;
+  height:42px !important;
+  border-radius:14px !important;
+  background:#f3ede5 !important;
+  overflow:hidden !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  box-shadow:none !important;
+  border:0 !important;
+}
+.progress-ring::before{
+  content:"" !important;
+  position:absolute !important;
+  inset:0 auto 0 0 !important;
+  width:var(--bar-progress,13%);
+  height:100%;
+  border-radius:14px 0 0 14px !important;
+  background:var(--accent,#d0aa78) !important;
+  z-index:0 !important;
+}
+.progress-ring::after{
+  display:none !important;
+  content:none !important;
+}
+.progress-ring .progress-value,
+.progress-ring > div{
+  position:relative !important;
+  inset:auto !important;
+  width:auto !important;
+  height:auto !important;
+  background:transparent !important;
+  z-index:2 !important;
+  display:flex !important;
+  align-items:center !important;
+  gap:6px !important;
+}
+.progress-ring .progress-value .heart,
+.progress-ring svg{
+  display:none !important;
+}
+.progress-ring strong{
+  font-size:16px !important;
+  line-height:1 !important;
+}
+.progress-ring small{
+  font-size:12px !important;
+  line-height:1 !important;
+}
+@media(max-width:390px){
+  .hero{padding-bottom:76px !important}
+  .progress-ring{
+    left:18px !important;
+    right:18px !important;
+    bottom:16px !important;
+    height:40px !important;
+  }
+}
+
+/* v56 — HOME pregnancy card per approved mockup */
+.hero{
+  position:relative !important;
+  min-height:440px !important;
+  padding:30px 24px 82px !important;
+  background:#fbf5ed !important;
+  border:1px solid rgba(205,174,139,.12) !important;
+  box-shadow:0 12px 30px rgba(111,82,62,.055) !important;
+  overflow:hidden !important;
+}
+
+/* larger baby on the right */
+.pregnancy-baby-illustration{
+  position:absolute !important;
+  right:12px !important;
+  top:52px !important;
+  width:205px !important;
+  height:205px !important;
+  object-fit:contain !important;
+  z-index:1 !important;
+  filter:drop-shadow(0 8px 18px rgba(120,83,65,.08)) !important;
+}
+
+/* keep pregnancy text readable on the left */
+.hero .week-block,
+.hero .pregnancy-copy{
+  position:relative !important;
+  z-index:2 !important;
+  max-width:48% !important;
+}
+
+/* percentage is a proper full-width progress strip */
+.progress-ring{
+  position:absolute !important;
+  left:24px !important;
+  right:24px !important;
+  bottom:24px !important;
+  top:auto !important;
+  width:auto !important;
+  height:48px !important;
+  border-radius:24px !important;
+  background:#efe5d8 !important;
+  overflow:hidden !important;
+  box-shadow:none !important;
+  border:0 !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-start !important;
+  padding:0 16px !important;
+}
+.progress-ring::before{
+  content:"" !important;
+  position:absolute !important;
+  left:0 !important;
+  top:0 !important;
+  bottom:0 !important;
+  width:var(--bar-progress,0%) !important;
+  background:var(--accent,#d1aa78) !important;
+  border-radius:24px !important;
+  z-index:0 !important;
+}
+.progress-ring::after{display:none !important;content:none !important}
+.progress-ring .progress-value,
+.progress-ring > div{
+  position:relative !important;
+  z-index:2 !important;
+  display:flex !important;
+  flex-direction:row !important;
+  align-items:baseline !important;
+  gap:7px !important;
+  width:auto !important;
+  height:auto !important;
+  background:transparent !important;
+}
+.progress-ring svg,
+.progress-ring .heart{display:none !important}
+.progress-ring strong{
+  font-size:18px !important;
+  line-height:1 !important;
+}
+.progress-ring small{
+  font-size:12px !important;
+  line-height:1 !important;
+}
+
+/* due-date area stays above the progress strip */
+.hero .due{
+  position:absolute !important;
+  left:24px !important;
+  right:24px !important;
+  bottom:88px !important;
+  width:auto !important;
+  z-index:2 !important;
+}
+
+@media(max-width:390px){
+  .hero{
+    min-height:425px !important;
+    padding:26px 20px 78px !important;
+  }
+  .pregnancy-baby-illustration{
+    width:188px !important;
+    height:188px !important;
+    right:4px !important;
+    top:58px !important;
+  }
+  .progress-ring{
+    left:20px !important;
+    right:20px !important;
+    bottom:20px !important;
+    height:46px !important;
+  }
+  .hero .due{
+    left:20px !important;
+    right:20px !important;
+    bottom:82px !important;
+  }
+}
+
+/* v58 — approved pregnancy overview */
+.hero{
+  position:relative !important;
+  min-height:430px !important;
+  padding:28px 22px 78px !important;
+  background:#fbf3e9 !important;
+  border:0 !important;
+  border-radius:24px !important;
+  box-shadow:0 10px 28px rgba(112,82,61,.045) !important;
+  overflow:hidden !important;
+}
+
+/* Large illustration using the free right-hand space */
+.pregnancy-baby-illustration{
+  position:absolute !important;
+  right:-10px !important;
+  top:34px !important;
+  width:235px !important;
+  height:235px !important;
+  object-fit:contain !important;
+  z-index:1 !important;
+  filter:drop-shadow(0 8px 18px rgba(118,82,63,.07)) !important;
+}
+
+/* Text remains on the left */
+.hero .week-block,
+.hero .pregnancy-copy{
+  position:relative !important;
+  z-index:2 !important;
+  max-width:52% !important;
+}
+
+/* Due-date block above progress bar */
+.hero .due{
+  position:absolute !important;
+  left:22px !important;
+  right:185px !important;
+  bottom:78px !important;
+  width:auto !important;
+  z-index:2 !important;
+}
+
+/* Replace circular progress display with a full horizontal bar */
+.progress-ring{
+  position:absolute !important;
+  left:22px !important;
+  right:22px !important;
+  bottom:20px !important;
+  top:auto !important;
+  width:auto !important;
+  height:38px !important;
+  min-height:38px !important;
+  padding:0 14px !important;
+  border:0 !important;
+  border-radius:19px !important;
+  background:#eadcca !important;
+  box-shadow:none !important;
+  overflow:hidden !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-start !important;
+  z-index:3 !important;
+}
+.progress-ring::before{
+  content:"" !important;
+  position:absolute !important;
+  left:0 !important;
+  top:0 !important;
+  bottom:0 !important;
+  width:var(--bar-progress,0%) !important;
+  background:#d2aa78 !important;
+  border-radius:19px !important;
+  z-index:0 !important;
+}
+.progress-ring::after{
+  display:none !important;
+  content:none !important;
+}
+.progress-ring .progress-value,
+.progress-ring > div{
+  position:relative !important;
+  inset:auto !important;
+  z-index:2 !important;
+  width:auto !important;
+  height:auto !important;
+  background:transparent !important;
+  display:flex !important;
+  flex-direction:row !important;
+  align-items:center !important;
+  gap:5px !important;
+}
+.progress-ring svg,
+.progress-ring .heart{
+  display:none !important;
+}
+.progress-ring strong{
+  font-size:17px !important;
+  line-height:1 !important;
+}
+.progress-ring small{
+  font-size:12px !important;
+  line-height:1 !important;
+}
+
+@media(max-width:390px){
+  .hero{
+    min-height:415px !important;
+    padding:25px 19px 74px !important;
+  }
+  .pregnancy-baby-illustration{
+    width:215px !important;
+    height:215px !important;
+    right:-14px !important;
+    top:42px !important;
+  }
+  .hero .due{
+    left:19px !important;
+    right:168px !important;
+    bottom:74px !important;
+  }
+  .progress-ring{
+    left:19px !important;
+    right:19px !important;
+    bottom:18px !important;
+    height:36px !important;
+    min-height:36px !important;
+  }
+}
+
+/* v59 — language splash: NO white card, larger neutral baby */
+#languageSplash,
+.language-splash,
+.splash-screen,
+.welcome-screen{
+  background:#fbf2ef !important;
+}
+
+/* Remove the white card itself but keep its layout/content */
+#languageSplash .splash-card,
+.language-splash .splash-card,
+.splash-screen .splash-card,
+.welcome-screen .splash-card,
+#languageSplash .welcome-card,
+.language-splash .welcome-card{
+  background:transparent !important;
+  box-shadow:none !important;
+  border:0 !important;
+  border-radius:0 !important;
+}
+
+/* The splash content wrapper itself must not look like a card */
+#languageSplash > div,
+.language-splash > div{
+  box-shadow:none !important;
+}
+
+/* Significantly larger splash illustration */
+#languageSplash img[src*="baby-neutral"],
+.language-splash img[src*="baby-neutral"],
+.splash-screen img[src*="baby-neutral"],
+.welcome-screen img[src*="baby-neutral"]{
+  width:190px !important;
+  height:190px !important;
+  max-width:none !important;
+  object-fit:contain !important;
+  margin-top:14px !important;
+  margin-bottom:14px !important;
+}
+
+/* v61 — REQUIRED horizontal pregnancy percentage bar */
+.hero{
+  padding-bottom:76px !important;
+}
+.progress-ring{
+  display:flex !important;
+  visibility:visible !important;
+  opacity:1 !important;
+  position:absolute !important;
+  left:22px !important;
+  right:22px !important;
+  bottom:20px !important;
+  top:auto !important;
+  width:auto !important;
+  height:38px !important;
+  min-height:38px !important;
+  border-radius:19px !important;
+  border:0 !important;
+  background:#eadfD2 !important;
+  overflow:hidden !important;
+  align-items:center !important;
+  justify-content:flex-start !important;
+  padding:0 14px !important;
+  z-index:10 !important;
+  box-shadow:none !important;
+}
+.progress-ring::before{
+  content:"" !important;
+  display:block !important;
+  position:absolute !important;
+  left:0 !important;
+  top:0 !important;
+  bottom:0 !important;
+  width:var(--bar-progress,0%) !important;
+  background:var(--accent,#d2aa78) !important;
+  border-radius:19px !important;
+  z-index:0 !important;
+}
+.progress-ring::after{display:none !important;content:none !important}
+.progress-ring > div,
+.progress-ring .progress-value{
+  display:flex !important;
+  position:relative !important;
+  inset:auto !important;
+  width:auto !important;
+  height:auto !important;
+  align-items:center !important;
+  flex-direction:row !important;
+  gap:5px !important;
+  background:transparent !important;
+  z-index:2 !important;
+}
+.progress-ring svg,
+.progress-ring .heart{display:none !important}
+.progress-ring strong{
+  display:inline !important;
+  font-size:17px !important;
+  line-height:1 !important;
+}
+.progress-ring small{
+  display:inline !important;
+  font-size:12px !important;
+  line-height:1 !important;
+}
+
+/* v62 — real standalone pregnancy progress bar */
+#progressRing,
+.progress-ring{
+  display:none !important;
+}
+
+.hero{
+  position:relative !important;
+  padding-bottom:82px !important;
+}
+
+.pregnancy-progress-bar{
+  position:absolute;
+  left:22px;
+  right:22px;
+  bottom:22px;
+  height:40px;
+  border-radius:20px;
+  background:#eadfd2;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:20;
+}
+
+.pregnancy-progress-fill{
+  position:absolute;
+  left:0;
+  top:0;
+  bottom:0;
+  width:0%;
+  background:var(--accent,#d2aa78);
+  border-radius:20px;
+  transition:width .25s ease;
+  z-index:0;
+}
+
+.pregnancy-progress-label{
+  position:relative;
+  z-index:2;
+  font-size:16px;
+  line-height:1;
+  color:#222;
+}
+
+@media(max-width:390px){
+  .pregnancy-progress-bar{
+    left:19px;
+    right:19px;
+    bottom:19px;
+    height:38px;
+  }
+}
+
+
+/* v65 — verified language splash centering */
+html, body{
+  min-height:100%;
+}
+
+#languageSplash.language-splash{
+  position:fixed !important;
+  inset:0 !important;
+  z-index:9999 !important;
+  width:100% !important;
+  height:100vh !important;
+  height:100dvh !important;
+  margin:0 !important;
+  padding:24px !important;
+  box-sizing:border-box !important;
+
+  display:grid !important;
+  place-items:center !important;
+
+  background:#fbf2ef !important;
+  overflow:auto !important;
+}
+
+#languageSplash.language-splash[hidden]{
+  display:none !important;
+}
+
+#languageSplash .language-card{
+  position:relative !important;
+  inset:auto !important;
+  transform:none !important;
+  float:none !important;
+
+  width:min(100%, 390px) !important;
+  max-width:390px !important;
+  margin:0 !important;
+
+  background:transparent !important;
+  box-shadow:none !important;
+  border:0 !important;
+  border-radius:0 !important;
+
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  justify-content:center !important;
+  text-align:center !important;
+  box-sizing:border-box !important;
+}
+
+#languageSplash .welcome-brand,
+#languageSplash .language-options{
+  width:100% !important;
+}
+
+#languageSplash .welcome-brand{
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  justify-content:center !important;
+}
+
+#languageSplash .language-options{
+  display:grid !important;
+  grid-template-columns:1fr 1fr !important;
+  gap:12px !important;
+}
+
+#languageSplash .language-choice{
+  width:100% !important;
+}
+
+#languageSplash .welcome-mimibe-logo{
+  display:block !important;
+  margin:0 auto 12px !important;
+}
+
+#languageSplash .welcome-baby-art{
+  display:block !important;
+  width:190px !important;
+  height:190px !important;
+  max-width:none !important;
+  margin:0 auto 12px !important;
+  object-fit:contain !important;
+}
+
+#languageSplash .welcome-by{
+  margin-left:auto !important;
+  margin-right:auto !important;
+}
+
+@media(max-height:700px){
+  #languageSplash.language-splash{
+    place-items:start center !important;
+    padding-top:24px !important;
+    padding-bottom:24px !important;
+  }
+}
+
+/* v66 — very light page background follows selected color theme */
+:root{
+  --page-bg:#f8f3ed;
+  --page-bg-soft:#fbf8f4;
+}
+
+body[data-theme="neutral"]{
+  --page-bg:#f7f1e9;
+  --page-bg-soft:#fbf7f2;
+}
+
+body[data-theme="pink"]{
+  --page-bg:#fff1f5;
+  --page-bg-soft:#fff7f9;
+}
+
+body[data-theme="blue"]{
+  --page-bg:#eef8fd;
+  --page-bg-soft:#f7fcff;
+}
+
+/* Main app background */
+body{
+  background:var(--page-bg) !important;
+  transition:background-color .25s ease;
+}
+
+.app-shell,
+.app,
+main,
+.view{
+  background:var(--page-bg) !important;
+  transition:background-color .25s ease;
+}
+
+/* Keep cards readable while letting the selected color show around them */
+.card,
+.quick,
+.bottom-nav{
+  background:rgba(255,255,255,.88);
+}
+
+/* Slightly themed hero/pregnancy card */
+body[data-theme="neutral"] .hero{
+  background:#fbf3e9 !important;
+}
+
+body[data-theme="pink"] .hero{
+  background:#fff0f5 !important;
+}
+
+body[data-theme="blue"] .hero{
+  background:#eef8fd !important;
+}
+
+/* The first language-choice splash stays neutral until a theme has been chosen */
+#languageSplash.language-splash{
+  background:#fbf2ef !important;
+}
+
+/* v67 — user's baby-face icon in baby profile card */
+:root{
+  --baby-icon-color:#c9a77c;
+  --baby-icon-bg:#f3eadf;
+}
+body[data-theme="neutral"]{
+  --baby-icon-color:#c9a77c;
+  --baby-icon-bg:#f3eadf;
+}
+body[data-theme="pink"]{
+  --baby-icon-color:#ff8fb1;
+  --baby-icon-bg:#fff0f5;
+}
+body[data-theme="blue"]{
+  --baby-icon-color:#89cff0;
+  --baby-icon-bg:#eef8fd;
+}
+
+.baby-profile-icon{
+  width:52px;
+  height:52px;
+  flex:0 0 52px;
+  border-radius:50%;
+  background:var(--baby-icon-bg);
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+}
+
+.baby-profile-icon .baby-profile-svg{
+  width:37px;
+  height:37px;
+  display:block;
+  overflow:visible;
+}
+
+/* Keep line art dark, color filled/decorative shapes by theme */
+.baby-profile-icon .baby-profile-svg path,
+.baby-profile-icon .baby-profile-svg circle,
+.baby-profile-icon .baby-profile-svg ellipse{
+  stroke:#111;
+}
+
+.baby-profile-icon .baby-profile-svg [fill]:not([fill="none"]):not([fill="#000"]):not([fill="#000000"]):not([fill="black"]){
+  fill:var(--baby-icon-color) !important;
+}
+
+/* If the original SVG is mostly black fill, make the small decorative heart thematic
+   while keeping the face linework dark where possible. */
+.baby-profile-icon .baby-profile-svg .icon-accent,
+.baby-profile-icon .baby-profile-svg [class*="accent"],
+.baby-profile-icon .baby-profile-svg [id*="heart"],
+.baby-profile-icon .baby-profile-svg [id*="srd"]{
+  fill:var(--baby-icon-color) !important;
+  stroke:#111 !important;
+}
+
+/* v69 — authoritative theme palette */
+:root,
+body[data-theme="neutral"]{
+  --theme-bg:#f7f1e9;
+  --theme-bg-soft:#fbf7f2;
+  --theme-card:#fffdfb;
+  --theme-hero:#fbf3e9;
+  --theme-accent:#cfa56f;
+  --theme-accent-soft:#efe2d2;
+  --icon-accent:#c9a77c;
+  --baby-icon-bg:#f3eadf;
+}
+
+body[data-theme="pink"]{
+  --theme-bg:#fff1f5;
+  --theme-bg-soft:#fff7f9;
+  --theme-card:#fffafb;
+  --theme-hero:#fff0f5;
+  --theme-accent:#f48cac;
+  --theme-accent-soft:#fde0e9;
+  --icon-accent:#ff8fb1;
+  --baby-icon-bg:#fff0f5;
+}
+
+body[data-theme="blue"]{
+  --theme-bg:#eef8fd;
+  --theme-bg-soft:#f7fcff;
+  --theme-card:#fbfeff;
+  --theme-hero:#edf8fd;
+  --theme-accent:#78c7ec;
+  --theme-accent-soft:#dff2fb;
+  --icon-accent:#89cff0;
+  --baby-icon-bg:#eef8fd;
+}
+
+body{
+  background:var(--theme-bg) !important;
+}
+
+.app-shell,
+.app,
+main,
+.view{
+  background:var(--theme-bg) !important;
+}
+
+.card,
+.baby-name-card,
+.event-card,
+.quick,
+.settings-card,
+.photo-card{
+  background:var(--theme-card) !important;
+}
+
+.hero{
+  background:var(--theme-hero) !important;
+}
+
+.progress-ring::before,
+.pregnancy-progress-fill,
+.plus-btn,
+.fab{
+  background:var(--theme-accent) !important;
+}
+
+.pill,
+.filter-btn.active,
+.theme-option.active{
+  color:var(--theme-accent) !important;
+}
+
+.baby-profile-icon{
+  background:var(--baby-icon-bg) !important;
+}
+
+.user-final-icon .icon-accent{
+  fill:var(--icon-accent) !important;
+}
+
+body[data-theme="neutral"] .text-btn,
+body[data-theme="neutral"] .nav-item.active{
+  color:#b48755 !important;
+}
+body[data-theme="pink"] .text-btn,
+body[data-theme="pink"] .nav-item.active{
+  color:#e9799c !important;
+}
+body[data-theme="blue"] .text-btn,
+body[data-theme="blue"] .nav-item.active{
+  color:#58b7e5 !important;
+}
+
+
+/* v72d — trash.svg only in Naše miminko card; header/settings untouched */
+.baby-name-card .baby-profile-icon{
+ width:52px;height:52px;flex:0 0 52px;border-radius:50%;
+ background:var(--baby-icon-bg,#f3eadf);
+ display:inline-flex;align-items:center;justify-content:center;overflow:hidden
+}
+.baby-name-card .baby-profile-svg{width:36px;height:36px;display:block}
+
+/* v75 — fix progress bar scrolling WITHOUT touching bottom navigation */
+.hero{
+  position:relative !important;
+  overflow:hidden !important;
+  isolation:isolate !important;
+}
+
+.pregnancy-progress-bar{
+  z-index:1 !important;
+  pointer-events:none !important;
+}
+
+.pregnancy-progress-fill{
+  z-index:0 !important;
+}
+
+.pregnancy-progress-label{
+  z-index:1 !important;
+}
+
+/* v76 — theme selector in Settings behaves like a normal control */
+.settings-card,
+.settings-section,
+.settings-form,
+.theme-settings,
+.language-settings-card{
+  overflow:visible !important;
+}
+
+#themeSelect{
+  position:relative !important;
+  z-index:1 !important;
+  width:100% !important;
+  min-height:46px !important;
+  margin-bottom:14px !important;
+}
+
+.settings-card .save-btn,
+.settings-form .save-btn,
+#saveSettings{
+  position:relative !important;
+  z-index:2 !important;
+  margin-top:12px !important;
+  width:100% !important;
+}
+
+/* Any custom theme-options panel must stay in document flow */
+.theme-options,
+.theme-dropdown,
+.theme-picker-options{
+  position:static !important;
+  inset:auto !important;
+  width:100% !important;
+  max-height:none !important;
+  overflow:visible !important;
+  z-index:auto !important;
+  margin-bottom:12px !important;
+}
+
+/* v77 — mobile Settings QA and responsive fixes */
+#view-settings{
+  box-sizing:border-box;
+}
+
+#view-settings .page-head,
+#view-settings .settings-section-title,
+#view-settings .card,
+#view-settings .about-madlaart-final{
+  width:100%;
+  box-sizing:border-box;
+}
+
+#view-settings .form-card{
+  overflow:visible !important;
+}
+
+#view-settings label{
+  display:block;
+  width:100%;
+  box-sizing:border-box;
+}
+
+#view-settings input,
+#view-settings select,
+#view-settings textarea,
+#view-settings button{
+  max-width:100%;
+  box-sizing:border-box;
+}
+
+#view-settings #themeSelect{
+  width:100% !important;
+  min-height:48px !important;
+  position:relative !important;
+  z-index:1 !important;
+  margin:6px 0 14px !important;
+}
+
+#view-settings #saveSettings{
+  width:100% !important;
+  min-height:48px !important;
+  position:relative !important;
+  z-index:1 !important;
+  margin-top:4px !important;
+}
+
+#view-settings .language-settings-card{
+  overflow:visible !important;
+}
+
+#view-settings .settings-language-buttons{
+  display:grid !important;
+  grid-template-columns:1fr 1fr !important;
+  gap:10px !important;
+  width:100% !important;
+}
+
+#view-settings .settings-language-buttons .language-mini{
+  width:100% !important;
+  min-width:0 !important;
+  min-height:46px !important;
+  padding:10px 8px !important;
+  white-space:normal !important;
+}
+
+#view-settings .support-zone{
+  display:grid !important;
+  grid-template-columns:auto minmax(0,1fr) !important;
+  gap:12px 14px !important;
+  align-items:start !important;
+}
+
+#view-settings .support-zone #supportButton{
+  grid-column:1 / -1 !important;
+  width:100% !important;
+  min-height:46px !important;
+  white-space:normal !important;
+}
+
+#view-settings .delete-zone,
+#view-settings .danger-zone{
+  overflow:visible !important;
+}
+
+#view-settings #deleteProfile{
+  width:100% !important;
+  min-height:48px !important;
+  white-space:normal !important;
+}
+
+#view-settings{
+  padding-bottom:120px !important;
+}
+
+/* common mobile widths */
+@media(max-width:430px){
+  #view-settings{
+    padding-left:16px !important;
+    padding-right:16px !important;
+  }
+
+  #view-settings .card{
+    padding:18px !important;
+    border-radius:22px !important;
+  }
+
+  #view-settings .page-head{
+    gap:10px !important;
+  }
+
+  #view-settings .page-head h2{
+    font-size:24px !important;
+  }
+
+  #view-settings .settings-section-title{
+    margin-left:2px !important;
+    margin-right:2px !important;
+  }
+
+  #view-settings input,
+  #view-settings select{
+    font-size:16px !important; /* avoids iOS auto-zoom */
+  }
+
+  #view-settings .about-madlaart-final{
+    padding-left:8px !important;
+    padding-right:8px !important;
+  }
+}
+
+/* narrow phones */
+@media(max-width:360px){
+  #view-settings{
+    padding-left:12px !important;
+    padding-right:12px !important;
+  }
+
+  #view-settings .card{
+    padding:15px !important;
+    border-radius:20px !important;
+  }
+
+  #view-settings .settings-language-buttons{
+    grid-template-columns:1fr !important;
+  }
+
+  #view-settings .support-zone{
+    grid-template-columns:1fr !important;
+  }
+
+  #view-settings .support-icon{
+    margin-bottom:2px !important;
+  }
+}
+
+/* v78 — mobile-safe custom theme picker; no native dropdown */
+#view-settings #themeSelect{
+  position:absolute !important;
+  width:1px !important;
+  height:1px !important;
+  opacity:0 !important;
+  pointer-events:none !important;
+  overflow:hidden !important;
+  clip:rect(0 0 0 0) !important;
+  white-space:nowrap !important;
+  margin:0 !important;
+  padding:0 !important;
+  border:0 !important;
+}
+
+#view-settings .theme-choice-grid{
+  display:grid !important;
+  grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+  gap:10px !important;
+  width:100% !important;
+  margin:8px 0 16px !important;
+}
+
+#view-settings .theme-choice-card{
+  min-height:76px !important;
+  width:100% !important;
+  padding:10px 8px !important;
+  border:1px solid rgba(188,155,120,.35) !important;
+  border-radius:16px !important;
+  background:rgba(255,255,255,.76) !important;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:7px !important;
+  cursor:pointer !important;
+  box-shadow:none !important;
+}
+
+#view-settings .theme-choice-card.active{
+  border:2px solid var(--theme-accent,#cfa56f) !important;
+  background:var(--theme-bg-soft,#fbf7f2) !important;
+}
+
+#view-settings .theme-swatch{
+  width:26px !important;
+  height:26px !important;
+  border-radius:50% !important;
+  display:block !important;
+  border:1px solid rgba(0,0,0,.06) !important;
+}
+
+.theme-swatch-neutral{ background:#eadfD2 !important; }
+.theme-swatch-pink{ background:#f7b7c9 !important; }
+.theme-swatch-blue{ background:#a9daf2 !important; }
+
+@media(max-width:360px){
+  #view-settings .theme-choice-grid{
+    grid-template-columns:1fr !important;
+  }
+  #view-settings .theme-choice-card{
+    min-height:58px !important;
+    flex-direction:row !important;
+    justify-content:flex-start !important;
+    padding:10px 14px !important;
+  }
+}
+
+/* Automatic memory video */
+.memory-video-dialog{
+  width:min(92vw,460px);
+  max-height:90dvh;
+  border:0;
+  border-radius:28px;
+  padding:0;
+  background:transparent;
+}
+.memory-video-dialog::backdrop{background:rgba(48,37,31,.42);backdrop-filter:blur(3px)}
+.memory-video-shell{
+  background:var(--theme-card,#fffdfb);
+  border-radius:28px;
+  padding:22px;
+  box-shadow:0 22px 70px rgba(56,39,29,.18);
+  overflow:auto;
+  max-height:90dvh;
+}
+.memory-video-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.memory-video-head h3{margin:3px 0 0}
+.memory-video-close{
+  width:42px;height:42px;min-height:42px;padding:0;border:0;border-radius:50%;
+  background:var(--theme-bg-soft,#f7f1e9);font-size:26px;line-height:1
+}
+.memory-video-intro{font-size:13px;line-height:1.55;color:var(--muted);margin:16px 0}
+.memory-video-summary{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.memory-video-summary>div{
+  background:var(--theme-bg-soft,#f7f1e9);border-radius:16px;padding:12px;text-align:center
+}
+.memory-video-summary strong{display:block;font-size:20px}
+.memory-video-summary span{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+.memory-music-field{display:block;margin:8px 0 18px}
+.memory-music-field>span{display:block;font-weight:700;margin-bottom:7px}
+.memory-music-field input{width:100%}
+.memory-music-field small{display:block;margin-top:7px;color:var(--muted);line-height:1.4}
+.memory-video-progress{margin:16px 0}
+.memory-video-progress-track{height:10px;border-radius:20px;background:var(--theme-bg-soft,#eee);overflow:hidden}
+.memory-video-progress-track i{
+  display:block;width:0%;height:100%;border-radius:20px;background:var(--theme-accent,var(--accent,#cfa56f));
+  transition:width .12s linear
+}
+.memory-video-progress strong{display:block;margin-top:8px}
+.memory-video-progress small{display:block;color:var(--muted);margin-top:3px}
+.memory-video-preview{width:100%;border-radius:18px;background:#000;margin:14px 0;max-height:50dvh}
+.memory-video-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.memory-video-actions a{display:flex;align-items:center;justify-content:center;text-decoration:none}
+.memory-video-actions #downloadMemoryVideo{grid-column:1/-1}
+.memory-video-privacy{display:block;text-align:center;color:var(--muted);margin-top:14px}
+@media(max-width:360px){.memory-video-actions{grid-template-columns:1fr}.memory-video-summary{grid-template-columns:1fr 1fr}}
