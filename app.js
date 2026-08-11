@@ -1579,9 +1579,20 @@ function drawPhotoTimeline(ctx,imgs,w,h,local,photoSec,fadeSec){
   }
 }
 async function dataUrlToBitmap(src){
-  const blob=await (await fetch(src)).blob();
-  if('createImageBitmap' in window) return await createImageBitmap(blob);
-  return await loadVideoImage(src);
+  if(!src)throw new Error('Chybí zdroj fotografie');
+  try{
+    const img=await loadVideoImage(src);
+    if((img.naturalWidth||img.width) && (img.naturalHeight||img.height))return img;
+  }catch(firstError){
+    if('createImageBitmap' in window){
+      const response=await fetch(src);
+      if(!response.ok && !String(src).startsWith('data:'))throw firstError;
+      const blob=await response.blob();
+      return await createImageBitmap(blob);
+    }
+    throw firstError;
+  }
+  throw new Error('Fotografii se nepodařilo dekódovat');
 }
 function closeVideoBitmap(img){try{if(typeof img?.close==='function')img.close();}catch(e){}}
 
@@ -1642,9 +1653,12 @@ async function selectedMemoryMusicBlob(){
   }
   const preset=MIMIBE_MUSIC_PRESETS[choice];
   if(!preset)return null;
-  const response=await fetch(preset.url,{mode:'cors'});
-  if(!response.ok)throw new Error('Music download failed: '+response.status);
-  return await response.blob();
+  const musicUrl=new URL(preset.url,document.baseURI).href;
+  const response=await fetch(musicUrl,{cache:'force-cache'});
+  if(!response.ok)throw new Error('Music load failed: '+response.status);
+  const blob=await response.blob();
+  if(!blob.size)throw new Error('Music file is empty');
+  return blob;
 }
 
 async function makeLoopedAudioBuffer(file,totalSec){
@@ -1665,6 +1679,23 @@ async function makeLoopedAudioBuffer(file,totalSec){
     }
     return out;
   }finally{try{await ac.close();}catch(e){}}
+}
+
+async function prepareVideoDrawables(photos,progressFill,progressText,startPct=3,spanPct=8){
+  const drawables=[],usablePhotos=[],failed=[];
+  for(let i=0;i<photos.length;i++){
+    try{
+      const drawable=await dataUrlToBitmap(photoSrc(photos[i])||photos[i].image);
+      drawables.push(drawable);usablePhotos.push(photos[i]);
+    }catch(error){
+      console.warn('MimiBe: photo skipped during video export',photos[i]?.id,error);
+      failed.push(photos[i]);
+    }
+    const pct=startPct+Math.round((i+1)/photos.length*spanPct);
+    if(progressFill)progressFill.style.width=pct+'%';
+    if(progressText)progressText.textContent=pct+' %';
+  }
+  return {drawables,usablePhotos,failed};
 }
 
 async function generateAutomaticMemoryVideo(){
@@ -1693,21 +1724,22 @@ async function generateAutomaticMemoryVideo(){
 
     status.textContent=videoText('Připravuji fotky…','Preparing photos…');
     const logoImg=await loadMemoryVideoLogo(),babyImg=await loadMemoryVideoBaby();
-    for(let i=0;i<photos.length;i++){
-      bitmaps.push(await dataUrlToBitmap(photos[i].image));
-      const pct=3+Math.round((i+1)/photos.length*8);progressFill.style.width=pct+'%';progressText.textContent=pct+' %';
-    }
+    const prepared=await prepareVideoDrawables(photos,progressFill,progressText);
+    bitmaps.push(...prepared.drawables);
+    const usablePhotos=prepared.usablePhotos;
+    if(bitmaps.length<2)throw new Error('Pro video se nepodařilo načíst alespoň dvě fotografie');
 
     const W=720,H=1280,FPS=30,FRAME=1/FPS;
     const INTRO=3.5,INTRO_FADE=1.0,PHOTO=4.2,FADE=1.2,OUTRO=2.7,OUTRO_FADE=1.0;
     const photoStart=INTRO-INTRO_FADE, step=PHOTO-FADE;
-    const photoEnd=photoStart+(photos.length-1)*step+PHOTO;
+    const photoEnd=photoStart+(bitmaps.length-1)*step+PHOTO;
     const outroStart=photoEnd-OUTRO_FADE,totalSec=outroStart+OUTRO;
     const totalFrames=Math.ceil(totalSec*FPS);
 
-    const canvas=typeof OffscreenCanvas!=='undefined'?new OffscreenCanvas(W,H):Object.assign(document.createElement('canvas'),{width:W,height:H});
+    const canvas=document.createElement('canvas');
     canvas.width=W;canvas.height=H;
     const ctx=canvas.getContext('2d',{alpha:false});
+    if(!ctx)throw new Error('Canvas 2D není dostupný');
 
     const output=new Output({format:new Mp4OutputFormat(),target:new BufferTarget()});
     const videoSource=new CanvasSource(canvas,{codec:'avc',quality:new Quality({bitrate:4_000_000})});
@@ -1733,12 +1765,14 @@ async function generateAutomaticMemoryVideo(){
     }
 
     await output.start();
-    if(audioSource&&audioBuffer){await audioSource.add(audioBuffer);audioSource.close();}
+    const audioWritePromise=(audioSource&&audioBuffer)
+      ? audioSource.add(audioBuffer).then(()=>audioSource.close())
+      : Promise.resolve();
 
     const selectedPreset=selectedMemoryMusicPreset();
     const musicCredit=selectedPreset?.credit||null;
 
-    const firstDate=photos[0]?.date,lastDate=photos[photos.length-1]?.date;
+    const firstDate=usablePhotos[0]?.date,lastDate=usablePhotos[usablePhotos.length-1]?.date;
     let period='';
     try{
       if(firstDate&&lastDate){
@@ -1774,6 +1808,7 @@ async function generateAutomaticMemoryVideo(){
       if(frame%12===0)await new Promise(r=>setTimeout(r,0));
     }
     videoSource.close();
+    await audioWritePromise;
     status.textContent=videoText('Dokončuji MP4…','Finalising MP4…');progressFill.style.width='97%';progressText.textContent='97 %';
     await output.finalize();
 
@@ -1786,7 +1821,7 @@ async function generateAutomaticMemoryVideo(){
   }catch(err){
     console.error('MimiBe video error',err);
     status.textContent=videoText('Video se nepodařilo vytvořit.','The video could not be created.');
-    alert(videoText('Video se nepodařilo vytvořit. Zkus nejdřív méně fotek (např. 3–5).','The video could not be created. Try fewer photos first (for example 3–5).'));
+    alert(videoText('Video se nepodařilo vytvořit. MimiBe narazilo na problém při zpracování obrazu nebo zvuku.','The video could not be created. MimiBe encountered a problem while processing the image or audio.'));
   }finally{
     bitmaps.forEach(closeVideoBitmap);memoryVideoState.working=false;generate.disabled=false;cancel.disabled=false;refreshMemoryVideoSelection();
   }
@@ -1836,13 +1871,16 @@ async function generateGenderRevealVideo(){
   try{
     status.textContent=videoText('Připravuji odhalení…','Preparing the reveal…');progressFill.style.width='2%';progressText.textContent='2 %';
     const MB=await loadMediabunny();const {Output,Mp4OutputFormat,BufferTarget,CanvasSource,AudioBufferSource,Quality}=MB;const logoImg=await loadMemoryVideoLogo();
-    for(let i=0;i<photos.length;i++){bitmaps.push(await dataUrlToBitmap(photos[i].image));const pct=3+Math.round((i+1)/photos.length*8);progressFill.style.width=pct+'%';progressText.textContent=pct+' %';}
+    const prepared=await prepareVideoDrawables(photos,progressFill,progressText);
+    bitmaps.push(...prepared.drawables);
+    if(bitmaps.length<1)throw new Error('Nepodařilo se načíst žádnou fotografii pro odhalení');
     const W=720,H=1280,FPS=30,FRAME=1/FPS,INTRO=3.0,INTRO_FADE=.7,PHOTO=2.8,FADE=.9,QUESTION=2.7,QFADE=.6,REVEAL=5.2;
     const photoStart=INTRO-INTRO_FADE,step=PHOTO-FADE,photoEnd=photoStart+(bitmaps.length-1)*step+PHOTO,questionStart=photoEnd-QFADE,revealStart=questionStart+QUESTION-QFADE,totalSec=revealStart+REVEAL,totalFrames=Math.ceil(totalSec*FPS);
-    const canvas=typeof OffscreenCanvas!=='undefined'?new OffscreenCanvas(W,H):Object.assign(document.createElement('canvas'),{width:W,height:H});canvas.width=W;canvas.height=H;const ctx=canvas.getContext('2d',{alpha:false});
+    const canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;const ctx=canvas.getContext('2d',{alpha:false});if(!ctx)throw new Error('Canvas 2D není dostupný');
     const output=new Output({format:new Mp4OutputFormat(),target:new BufferTarget()});const videoSource=new CanvasSource(canvas,{codec:'avc',quality:new Quality({bitrate:4_000_000})});output.addVideoTrack(videoSource,{frameRate:FPS});
     let audioSource=null,audioBuffer=null;if(memoryVideoState.musicChoice!=='none'){try{status.textContent=videoText('Připravuji hudbu…','Preparing music…');const musicBlob=await selectedMemoryMusicBlob();if(musicBlob){audioBuffer=await makeLoopedAudioBuffer(musicBlob,totalSec);if(audioBuffer){audioSource=new AudioBufferSource({codec:'aac',quality:new Quality({bitrate:128_000})});output.addAudioTrack(audioSource);}}}catch(e){console.warn('MimiBe reveal audio skipped',e);audioSource=null;audioBuffer=null;}}
-    await output.start();if(audioSource&&audioBuffer){await audioSource.add(audioBuffer);audioSource.close();}
+    await output.start();
+    const audioWritePromise=(audioSource&&audioBuffer)?audioSource.add(audioBuffer).then(()=>audioSource.close()):Promise.resolve();
     const selectedPreset=selectedMemoryMusicPreset(),musicCredit=selectedPreset?.credit||null,customIntro=(document.getElementById('genderRevealIntroText')?.value||'').trim()||videoText('Máme pro vás malé překvapení…','We have a little surprise for you…');
     status.textContent=videoText('Vytvářím překvapení…','Creating the surprise…');
     for(let frame=0;frame<totalFrames;frame++){
@@ -1856,9 +1894,9 @@ async function generateGenderRevealVideo(){
       else drawRevealFinal(ctx,W,H,(t-revealStart)/REVEAL,memoryVideoState.revealGender,logoImg,data?.babyName||'',musicCredit);
       await videoSource.add(t,FRAME,{keyFrame:frame===0||frame%(FPS*2)===0});const pct=12+Math.round((frame+1)/totalFrames*84);progressFill.style.width=pct+'%';progressText.textContent=pct+' %';if(frame%12===0)await new Promise(r=>setTimeout(r,0));
     }
-    videoSource.close();status.textContent=videoText('Dokončuji MP4…','Finalising MP4…');progressFill.style.width='97%';progressText.textContent='97 %';await output.finalize();
+    videoSource.close();await audioWritePromise;status.textContent=videoText('Dokončuji MP4…','Finalising MP4…');progressFill.style.width='97%';progressText.textContent='97 %';await output.finalize();
     const blob=new Blob([output.target.buffer],{type:'video/mp4'});if(memoryVideoState.url)URL.revokeObjectURL(memoryVideoState.url);memoryVideoState.url=URL.createObjectURL(blob);preview.src=memoryVideoState.url;preview.classList.remove('hidden');download.href=memoryVideoState.url;download.download='MimiBe-kluk-nebo-holka.mp4';download.classList.remove('hidden');progressFill.style.width='100%';progressText.textContent='100 %';status.textContent=videoText('Hotovo ♡ Překvapení je připravené.','Done ♡ Your surprise is ready.');
-  }catch(err){console.error('MimiBe reveal video error',err);status.textContent=videoText('Odhalovací video se nepodařilo vytvořit.','The reveal video could not be created.');alert(videoText('Odhalovací video se nepodařilo vytvořit. Zkus méně fotek.','The reveal video could not be created. Try fewer photos.'));}
+  }catch(err){console.error('MimiBe reveal video error',err);status.textContent=videoText('Odhalovací video se nepodařilo vytvořit.','The reveal video could not be created.');alert(videoText('Odhalovací video se nepodařilo vytvořit. MimiBe narazilo na problém při zpracování obrazu nebo zvuku.','The reveal video could not be created. MimiBe encountered a problem while processing the image or audio.'));}
   finally{bitmaps.forEach(closeVideoBitmap);memoryVideoState.working=false;generate.disabled=false;cancel.disabled=false;refreshMemoryVideoSelection();}
 }
 
