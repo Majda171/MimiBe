@@ -1138,7 +1138,7 @@ function setMemoryVideoLanguage(){
   if(reveal){
     set('videoDialogEyebrow','Bonusové video','Bonus video');
     set('videoDialogTitle','Kluk nebo holka? ♡','Boy or girl? ♡');
-    set('videoDialogIntro','Vyber 1–6 ultrazvuků nebo fotek. MimiBe vytvoří krátké video s napětím, srdíčkovým odhalením a logem MimiBe.','Choose 1–6 ultrasound scans or photos. MimiBe will create a short video with suspense, a heart reveal and the MimiBe logo.');
+    set('videoDialogIntro','Vyber 1–6 ultrazvuků nebo fotek. MimiBe je doplní jemnými černobílými detaily ručičky a nožiček a vytvoří krátké odhalení.','Choose 1–6 ultrasound scans or photos. MimiBe will add gentle black-and-white detail shots of a tiny hand and feet and create a short reveal.');
     set('videoPickerTitle','Vyber ultrazvuky a fotky','Choose ultrasound scans and photos');
     set('videoPickerHint','Do odhalovacího videa můžeš vybrat maximálně 6 fotek. Ultrazvuky se zobrazují jako první.','You can select up to 6 photos for the reveal video. Ultrasound scans are shown first.');
     set('memoryVideoSelectAll','Vybrat 6','Select 6');
@@ -1596,6 +1596,12 @@ async function dataUrlToBitmap(src){
 }
 function closeVideoBitmap(img){try{if(typeof img?.close==='function')img.close();}catch(e){}}
 
+async function loadRevealDetailImages(){
+  const hand=await dataUrlToBitmap('assets/reveal-hand.webp');
+  const feet=await dataUrlToBitmap('assets/reveal-feet.webp');
+  return {hand,feet};
+}
+
 function refreshMemoryMusicChoice(){
   document.querySelectorAll('[data-music-choice]').forEach(btn=>{
     const active=btn.dataset.musicChoice===memoryVideoState.musicChoice;
@@ -1846,7 +1852,35 @@ function drawRevealIntro(ctx,w,h,p,logoImg,text){
   const a=videoSmoothstep(Math.min(1,p*1.6));ctx.save();ctx.globalAlpha=a;ctx.textAlign='center';ctx.fillStyle='#65534A';ctx.font=`600 ${Math.round(w*.052)}px Arial, sans-serif`;drawRevealWrappedText(ctx,text||videoText('Máme pro vás malé překvapení…','We have a little surprise for you…'),w/2,h*.50,w*.78,Math.round(w*.066),3);drawRevealHeart(ctx,w/2,h*.68,w*.08,'#D9B6A5',.78+.18*Math.sin(p*Math.PI*3));ctx.restore();
 }
 function drawRevealPhotoScene(ctx,img,w,h,progress=0,alpha=1){
-  drawMemoryPhotoScene(ctx,img,w,h,progress,alpha);ctx.save();ctx.globalAlpha=.52*alpha;drawRevealHeart(ctx,w*.88,h*.10,w*.037,'#FFF7F0',1);ctx.restore();
+  const iw=img.naturalWidth||img.width,ih=img.naturalHeight||img.height;
+  if(!iw||!ih)return;
+  const p=videoSmoothstep(Math.max(0,Math.min(1,progress)));
+  ctx.save();
+  ctx.globalAlpha*=alpha;
+  ctx.fillStyle='#F7F3ED';ctx.fillRect(0,0,w,h);
+
+  // Jemná rozostřená černobílá výplň na celé 9:16 pozadí.
+  ctx.save();
+  ctx.filter='grayscale(1) blur(26px) brightness(.98) contrast(.90)';
+  coverImage(ctx,img,w,h,1.12,0,0,1);
+  ctx.restore();
+  ctx.fillStyle='rgba(247,243,237,.15)';ctx.fillRect(0,0,w,h);
+
+  // Celá fotografie bez ořezu, jen velmi pomalý filmový pohyb.
+  const base=Math.min((w*.94)/iw,(h*.91)/ih);
+  const scale=base*(1.015+.025*p);
+  const dw=iw*scale,dh=ih*scale;
+  const drift=(p-.5)*h*.012;
+  ctx.filter='grayscale(1) brightness(1.03) contrast(.96)';
+  ctx.drawImage(img,(w-dw)/2,(h-dh)/2+drift,dw,dh);
+  ctx.filter='none';
+
+  // Lehoučké zesvětlení okrajů.
+  const grad=ctx.createRadialGradient(w/2,h*.48,w*.15,w/2,h*.48,h*.72);
+  grad.addColorStop(0,'rgba(255,255,255,0)');
+  grad.addColorStop(1,'rgba(247,243,237,.18)');
+  ctx.fillStyle=grad;ctx.fillRect(0,0,w,h);
+  ctx.restore();
 }
 function drawRevealPhotoTimeline(ctx,imgs,w,h,t,photoDur,fadeDur){
   const step=photoDur-fadeDur;let j=Math.floor(t/step);j=Math.max(0,Math.min(imgs.length-1,j));const local=t-j*step;
@@ -1856,10 +1890,67 @@ function drawRevealQuestion(ctx,w,h,p,logoImg){
   ctx.fillStyle='#F7F3ED';ctx.fillRect(0,0,w,h);ctx.save();ctx.globalAlpha=videoSmoothstep(Math.min(1,p*1.5));drawRevealLogo(ctx,w,h,logoImg,.14,.31);ctx.textAlign='center';ctx.fillStyle='#65534A';ctx.font=`700 ${Math.round(w*.07)}px Arial, sans-serif`;ctx.fillText(videoText('Tipnete si?','Can you guess?'),w/2,h*.50);drawRevealHeart(ctx,w*.41,h*.66,w*.065,'#E7A8B9',.82);drawRevealHeart(ctx,w*.59,h*.66,w*.065,'#9ABAD8',.82);ctx.restore();
 }
 function drawRevealFinal(ctx,w,h,p,gender,logoImg,babyName,musicCredit){
-  const isGirl=gender==='girl', tint=isGirl?'#F4DCE4':'#DCEBF4', accent=isGirl?'#D887A2':'#74A8CD';
-  ctx.fillStyle='#F7F3ED';ctx.fillRect(0,0,w,h);const hp=videoSmoothstep(Math.min(1,p/.30));drawRevealHeart(ctx,w/2,h*.52,w*(.06+1.55*hp),accent,1);
-  if(p>.22){ctx.save();ctx.globalAlpha=videoSmoothstep(Math.min(1,(p-.22)/.18));ctx.fillStyle=tint;ctx.fillRect(0,0,w,h);ctx.restore();}
-  if(p>.30){const a=videoSmoothstep(Math.min(1,(p-.30)/.24));ctx.save();ctx.globalAlpha=a;drawRevealLogo(ctx,w,h,logoImg,.14,.34);ctx.textAlign='center';ctx.fillStyle=accent;ctx.font=`800 ${Math.round(w*.073)}px Arial, sans-serif`;ctx.fillText(isGirl?videoText('BUDE TO HOLČIČKA ♡','IT’S A GIRL ♡'):videoText('BUDE TO CHLAPEČEK ♡','IT’S A BOY ♡'),w/2,h*.49);if((babyName||'').trim()){ctx.fillStyle='#65534A';ctx.font=`600 ${Math.round(w*.052)}px Arial, sans-serif`;ctx.fillText((babyName||'').trim(),w/2,h*.58);}for(let i=0;i<5;i++){const yy=h*(.69+i*.035),xx=w*(.28+i*.11);drawRevealHeart(ctx,xx,yy,w*(.018+(i%2)*.007),accent,.28+.08*i);}if(musicCredit&&p>.70){ctx.fillStyle='#796B64';ctx.font=`500 ${Math.round(w*.020)}px Arial, sans-serif`;ctx.fillText(videoText('Hudba: ','Music: ')+musicCredit[0],w/2,h*.89);if(musicCredit[1])ctx.fillText(musicCredit[1],w/2,h*.915);}ctx.restore();}
+  const isGirl=gender==='girl';
+  const tint=isGirl?'#F8E4EB':'#E3F0F8';
+  const accent=isGirl?'#D96F98':'#5E9FCB';
+  const deep=isGirl?'#B84F77':'#3E7FAE';
+  const pp=Math.max(0,Math.min(1,p));
+
+  ctx.fillStyle='#F7F3ED';ctx.fillRect(0,0,w,h);
+
+  // Barevné světlo se jemně rozvine až v momentu odhalení.
+  const glow=videoSmoothstep(Math.min(1,pp/.35));
+  const rg=ctx.createRadialGradient(w/2,h*.48,0,w/2,h*.48,w*.72);
+  rg.addColorStop(0,tint);
+  rg.addColorStop(.58,`rgba(${isGirl?'248,228,235':'227,240,248'},${.72*glow})`);
+  rg.addColorStop(1,'rgba(247,243,237,0)');
+  ctx.globalAlpha=glow;ctx.fillStyle=rg;ctx.fillRect(0,0,w,h);ctx.globalAlpha=1;
+
+  drawRevealLogo(ctx,w,h,logoImg,.13,.34);
+
+  // Malé elegantní srdíčko – už ne přes celou obrazovku.
+  const heartIn=videoSmoothstep(Math.min(1,pp/.22));
+  ctx.save();
+  ctx.globalAlpha=heartIn;
+  const pulse=1+.06*Math.sin(pp*Math.PI*5);
+  ctx.translate(w/2,h*.37);ctx.scale(pulse,pulse);ctx.translate(-w/2,-h*.37);
+  drawRevealHeart(ctx,w/2,h*.37,w*.075,accent,.94);
+  ctx.restore();
+
+  if(pp>.16){
+    const a=videoSmoothstep(Math.min(1,(pp-.16)/.28));
+    const scale=.94+.06*a;
+    ctx.save();ctx.globalAlpha=a;ctx.translate(w/2,h*.52);ctx.scale(scale,scale);ctx.translate(-w/2,-h*.52);
+    ctx.textAlign='center';
+    ctx.fillStyle=deep;
+    ctx.font=`800 ${Math.round(w*.070)}px Arial, sans-serif`;
+    ctx.fillText(isGirl?videoText('BUDE TO HOLČIČKA ♡','IT’S A GIRL ♡'):videoText('BUDE TO CHLAPEČEK ♡','IT’S A BOY ♡'),w/2,h*.51);
+    if((babyName||'').trim()){
+      ctx.fillStyle='#65534A';
+      ctx.font=`600 ${Math.round(w*.052)}px Arial, sans-serif`;
+      ctx.fillText((babyName||'').trim(),w/2,h*.595);
+    }
+    ctx.restore();
+  }
+
+  // Několik drobných plovoucích srdíček, jen jako detail.
+  if(pp>.28){
+    const a=videoSmoothstep(Math.min(1,(pp-.28)/.32));
+    const pts=[[.22,.72,.018],[.34,.68,.012],[.67,.70,.015],[.79,.75,.019],[.57,.78,.011]];
+    pts.forEach((q,i)=>{
+      const floatY=Math.sin(pp*Math.PI*2+i)*h*.008;
+      drawRevealHeart(ctx,w*q[0],h*q[1]-floatY,w*q[2],accent,.22+.30*a);
+    });
+  }
+
+  if(musicCredit&&pp>.72){
+    ctx.save();ctx.globalAlpha=videoSmoothstep((pp-.72)/.18);
+    ctx.textAlign='center';ctx.fillStyle='#796B64';
+    ctx.font=`500 ${Math.round(w*.020)}px Arial, sans-serif`;
+    ctx.fillText(videoText('Hudba: ','Music: ')+musicCredit[0],w/2,h*.89);
+    if(musicCredit[1])ctx.fillText(musicCredit[1],w/2,h*.915);
+    ctx.restore();
+  }
 }
 async function generateGenderRevealVideo(){
   if(memoryVideoState.working)return;const photos=selectedMemoryVideoPhotos();
@@ -1872,10 +1963,17 @@ async function generateGenderRevealVideo(){
     status.textContent=videoText('Připravuji odhalení…','Preparing the reveal…');progressFill.style.width='2%';progressText.textContent='2 %';
     const MB=await loadMediabunny();const {Output,Mp4OutputFormat,BufferTarget,CanvasSource,AudioBufferSource,Quality}=MB;const logoImg=await loadMemoryVideoLogo();
     const prepared=await prepareVideoDrawables(photos,progressFill,progressText);
-    bitmaps.push(...prepared.drawables);
-    if(bitmaps.length<1)throw new Error('Nepodařilo se načíst žádnou fotografii pro odhalení');
-    const W=720,H=1280,FPS=30,FRAME=1/FPS,INTRO=3.0,INTRO_FADE=.7,PHOTO=2.8,FADE=.9,QUESTION=2.7,QFADE=.6,REVEAL=5.2;
-    const photoStart=INTRO-INTRO_FADE,step=PHOTO-FADE,photoEnd=photoStart+(bitmaps.length-1)*step+PHOTO,questionStart=photoEnd-QFADE,revealStart=questionStart+QUESTION-QFADE,totalSec=revealStart+REVEAL,totalFrames=Math.ceil(totalSec*FPS);
+    const userBitmaps=[...prepared.drawables];
+    bitmaps.push(...userBitmaps);
+    if(userBitmaps.length<1)throw new Error('Nepodařilo se načíst žádnou fotografii pro odhalení');
+
+    const detail=await loadRevealDetailImages();
+    bitmaps.push(detail.hand,detail.feet);
+    // Sekvence: ručička -> vlastní ultrazvuky/fotky -> nožičky.
+    const revealScenes=[detail.hand,...userBitmaps,detail.feet];
+
+    const W=720,H=1280,FPS=30,FRAME=1/FPS,INTRO=2.8,INTRO_FADE=.7,PHOTO=2.45,FADE=.75,QUESTION=2.4,QFADE=.55,REVEAL=4.8;
+    const photoStart=INTRO-INTRO_FADE,step=PHOTO-FADE,photoEnd=photoStart+(revealScenes.length-1)*step+PHOTO,questionStart=photoEnd-QFADE,revealStart=questionStart+QUESTION-QFADE,totalSec=revealStart+REVEAL,totalFrames=Math.ceil(totalSec*FPS);
     const canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;const ctx=canvas.getContext('2d',{alpha:false});if(!ctx)throw new Error('Canvas 2D není dostupný');
     const output=new Output({format:new Mp4OutputFormat(),target:new BufferTarget()});const videoSource=new CanvasSource(canvas,{codec:'avc',quality:new Quality({bitrate:4_000_000})});output.addVideoTrack(videoSource,{frameRate:FPS});
     let audioSource=null,audioBuffer=null;if(memoryVideoState.musicChoice!=='none'){try{status.textContent=videoText('Připravuji hudbu…','Preparing music…');const musicBlob=await selectedMemoryMusicBlob();if(musicBlob){audioBuffer=await makeLoopedAudioBuffer(musicBlob,totalSec);if(audioBuffer){audioSource=new AudioBufferSource({codec:'aac',quality:new Quality({bitrate:128_000})});output.addAudioTrack(audioSource);}}}catch(e){console.warn('MimiBe reveal audio skipped',e);audioSource=null;audioBuffer=null;}}
@@ -1886,9 +1984,9 @@ async function generateGenderRevealVideo(){
     for(let frame=0;frame<totalFrames;frame++){
       const t=frame/FPS;
       if(t<photoStart)drawRevealIntro(ctx,W,H,t/INTRO,logoImg,customIntro);
-      else if(t<INTRO){const x=videoSmoothstep((t-photoStart)/INTRO_FADE);ctx.clearRect(0,0,W,H);ctx.save();ctx.globalAlpha=1-x;drawRevealIntro(ctx,W,H,t/INTRO,logoImg,customIntro);ctx.restore();ctx.save();ctx.globalAlpha=x;drawRevealPhotoTimeline(ctx,bitmaps,W,H,0,PHOTO,FADE);ctx.restore();}
-      else if(t<questionStart)drawRevealPhotoTimeline(ctx,bitmaps,W,H,t-photoStart,PHOTO,FADE);
-      else if(t<photoEnd){const x=videoSmoothstep((t-questionStart)/QFADE);ctx.clearRect(0,0,W,H);ctx.save();ctx.globalAlpha=1-x;drawRevealPhotoTimeline(ctx,bitmaps,W,H,t-photoStart,PHOTO,FADE);ctx.restore();ctx.save();ctx.globalAlpha=x;drawRevealQuestion(ctx,W,H,0,logoImg);ctx.restore();}
+      else if(t<INTRO){const x=videoSmoothstep((t-photoStart)/INTRO_FADE);ctx.clearRect(0,0,W,H);ctx.save();ctx.globalAlpha=1-x;drawRevealIntro(ctx,W,H,t/INTRO,logoImg,customIntro);ctx.restore();ctx.save();ctx.globalAlpha=x;drawRevealPhotoTimeline(ctx,revealScenes,W,H,0,PHOTO,FADE);ctx.restore();}
+      else if(t<questionStart)drawRevealPhotoTimeline(ctx,revealScenes,W,H,t-photoStart,PHOTO,FADE);
+      else if(t<photoEnd){const x=videoSmoothstep((t-questionStart)/QFADE);ctx.clearRect(0,0,W,H);ctx.save();ctx.globalAlpha=1-x;drawRevealPhotoTimeline(ctx,revealScenes,W,H,t-photoStart,PHOTO,FADE);ctx.restore();ctx.save();ctx.globalAlpha=x;drawRevealQuestion(ctx,W,H,0,logoImg);ctx.restore();}
       else if(t<revealStart)drawRevealQuestion(ctx,W,H,(t-questionStart)/QUESTION,logoImg);
       else if(t<revealStart+QFADE){const x=videoSmoothstep((t-revealStart)/QFADE);ctx.clearRect(0,0,W,H);ctx.save();ctx.globalAlpha=1-x;drawRevealQuestion(ctx,W,H,1,logoImg);ctx.restore();ctx.save();ctx.globalAlpha=x;drawRevealFinal(ctx,W,H,0,memoryVideoState.revealGender,logoImg,data?.babyName||'',musicCredit);ctx.restore();}
       else drawRevealFinal(ctx,W,H,(t-revealStart)/REVEAL,memoryVideoState.revealGender,logoImg,data?.babyName||'',musicCredit);
