@@ -214,11 +214,52 @@
             <small id="videoPickerHint">Do jednoho videa můžeš vybrat maximálně 15 fotek.</small>
           </div>
 
-          <label class="memory-music-field">
-            <span id="videoMusicLabel">Hudba (volitelně)</span>
-            <input id="memoryVideoMusic" type="file" accept="audio/*">
-            <small id="videoMusicHint">Můžeš vybrat vlastní skladbu z telefonu. Když nic nevybereš, video bude bez hudby.</small>
-          </label>
+          <section class="memory-music-library" aria-labelledby="videoMusicLabel">
+            <div class="memory-music-title-row">
+              <div>
+                <strong id="videoMusicLabel">Hudba (volitelně)</strong>
+                <small id="videoMusicHint">Vyber hudbu MimiBe, vlastní skladbu nebo video vytvoř bez hudby.</small>
+              </div>
+            </div>
+
+            <div class="memory-music-options" id="memoryMusicOptions">
+              <button type="button" class="memory-music-option active" data-music-choice="none" aria-pressed="true">
+                <span class="memory-music-icon">♡</span>
+                <span class="memory-music-copy"><b id="musicNoneTitle">Bez hudby</b><small id="musicNoneSub">Jen vzpomínky</small></span>
+              </button>
+
+              <button type="button" class="memory-music-option" data-music-choice="lullaby" aria-pressed="false">
+                <span class="memory-music-icon">♫</span>
+                <span class="memory-music-copy"><b id="musicLullabyTitle">Ukolébavka</b><small id="musicLullabySub">Jemná a něžná</small></span>
+                <span class="memory-music-preview" data-preview-music="lullaby" aria-label="Přehrát ukázku">▶</span>
+              </button>
+
+              <button type="button" class="memory-music-option" data-music-choice="piano" aria-pressed="false">
+                <span class="memory-music-icon">♪</span>
+                <span class="memory-music-copy"><b id="musicPianoTitle">Jemné piano</b><small id="musicPianoSub">Klidné a emotivní</small></span>
+                <span class="memory-music-preview" data-preview-music="piano" aria-label="Přehrát ukázku">▶</span>
+              </button>
+
+              <button type="button" class="memory-music-option" data-music-choice="playful" aria-pressed="false">
+                <span class="memory-music-icon">✦</span>
+                <span class="memory-music-copy"><b id="musicPlayfulTitle">Hravá</b><small id="musicPlayfulSub">Lehčí a živější</small></span>
+                <span class="memory-music-preview" data-preview-music="playful" aria-label="Přehrát ukázku">▶</span>
+              </button>
+
+              <button type="button" class="memory-music-option" data-music-choice="custom" aria-pressed="false">
+                <span class="memory-music-icon">＋</span>
+                <span class="memory-music-copy"><b id="musicCustomTitle">Moje hudba</b><small id="musicCustomSub">Vyber skladbu z telefonu</small></span>
+              </button>
+            </div>
+
+            <div class="memory-custom-music hidden" id="memoryCustomMusicWrap">
+              <input id="memoryVideoMusic" type="file" accept="audio/*">
+              <small id="musicCustomHint">Vyber zvukový soubor uložený v telefonu.</small>
+            </div>
+
+            <audio id="memoryMusicPreviewAudio" preload="none" playsinline></audio>
+            <small class="memory-music-license" id="videoMusicLicense">Vestavěná hudba je CC0 / public domain a může být použita i v komerčních videích.</small>
+          </section>
 
           <div class="memory-video-progress hidden" id="memoryVideoProgress">
             <div class="memory-video-progress-track"><i id="memoryVideoProgressFill"></i></div>

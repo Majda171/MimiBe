@@ -1070,7 +1070,23 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 
 // MimiBe automatic local memory video creator
-const memoryVideoState={photos:[],selected:new Set(),url:'',working:false,logo:null,ffmpeg:null};
+const memoryVideoState={photos:[],selected:new Set(),url:'',working:false,logo:null,ffmpeg:null,musicChoice:'none',previewMusic:null};
+
+
+const MIMIBE_MUSIC_PRESETS={
+  lullaby:{
+    url:'https://commons.wikimedia.org/wiki/Special:Redirect/file/Lullaby_wound_up_clock_guten_abend_gute_nacht.ogg',
+    source:'Wikimedia Commons · public domain'
+  },
+  piano:{
+    url:'https://commons.wikimedia.org/wiki/Special:Redirect/file/La_Espero_-_1_piano_-_2020.ogg',
+    source:'Wikimedia Commons · CC0'
+  },
+  playful:{
+    url:'https://commons.wikimedia.org/wiki/Special:Redirect/file/Arpeggio_Dreamer.ogg',
+    source:'Wikimedia Commons · CC0'
+  }
+};
 
 function videoLang(){return (localStorage.getItem('pregnancyPlannerLanguage')==='en')?'en':'cs';}
 function videoText(cs,en){return videoLang()==='en'?en:cs;}
@@ -1089,12 +1105,25 @@ function setMemoryVideoLanguage(){
   set('videoPickerHint','Do jednoho videa můžeš vybrat maximálně 15 fotek.','You can select up to 15 photos for one video.');
   set('memoryVideoSelectAll','Vybrat 15','Select 15');
   set('videoMusicLabel','Hudba (volitelně)','Music (optional)');
-  set('videoMusicHint','Můžeš vybrat vlastní skladbu z telefonu. Když nic nevybereš, video bude bez hudby.',
-      'You can choose your own song from your phone. Leave it empty to create the video without music.');
+  set('videoMusicHint','Vyber hudbu MimiBe, vlastní skladbu nebo video vytvoř bez hudby.',
+      'Choose MimiBe music, your own song, or create the video without music.');
+  set('musicNoneTitle','Bez hudby','No music');
+  set('musicNoneSub','Jen vzpomínky','Memories only');
+  set('musicLullabyTitle','Ukolébavka','Lullaby');
+  set('musicLullabySub','Jemná a něžná','Soft and gentle');
+  set('musicPianoTitle','Jemné piano','Gentle piano');
+  set('musicPianoSub','Klidné a emotivní','Calm and emotional');
+  set('musicPlayfulTitle','Hravá','Playful');
+  set('musicPlayfulSub','Lehčí a živější','Light and lively');
+  set('musicCustomTitle','Moje hudba','My music');
+  set('musicCustomSub','Vyber skladbu z telefonu','Choose a song from your phone');
+  set('musicCustomHint','Vyber zvukový soubor uložený v telefonu.','Choose an audio file saved on your phone.');
+  set('videoMusicLicense','Vestavěná hudba je CC0 / public domain a může být použita i v komerčních videích.',
+      'Built-in music is CC0 / public domain and may also be used in commercial videos.');
   set('generateMemoryVideo','Vytvořit video','Create video');
   set('cancelMemoryVideo','Zrušit','Cancel');
   set('downloadMemoryVideo','Uložit video','Save video');
-  set('videoPrivacyText','🔒 Fotky ani hudba neopustí tvoje zařízení.','🔒 Your photos and music never leave your device.');
+  set('videoPrivacyText','🔒 Tvoje fotky neopustí zařízení. Vestavěná hudba se pouze stáhne z veřejného zdroje.','🔒 Your photos never leave your device. Built-in music is only downloaded from its public source.');
   refreshMemoryVideoSelection();
 }
 
@@ -1161,11 +1190,15 @@ async function openMemoryVideoDialog(){
   download.classList.add('hidden');
   progress.classList.add('hidden');
   document.getElementById('memoryVideoMusic').value='';
+  memoryVideoState.musicChoice='none';
+  stopMemoryMusicPreview();
+  refreshMemoryMusicChoice();
   dlg.showModal();
 }
 
 function closeMemoryVideoDialog(){
   if(memoryVideoState.working)return;
+  stopMemoryMusicPreview();
   document.getElementById('memoryVideoDialog')?.close();
 }
 
@@ -1187,7 +1220,7 @@ async function loadMemoryVideoBaby(){
 
 async function loadMemoryVideoLogo(){
   if(memoryVideoState.logo)return memoryVideoState.logo;
-  try{memoryVideoState.logo=await loadVideoImage('assets/madlaart-logo.png');}
+  try{memoryVideoState.logo=await loadVideoImage('assets/mimibe-logo.svg');}
   catch(e){memoryVideoState.logo=null;}
   return memoryVideoState.logo;
 }
@@ -1485,6 +1518,63 @@ async function dataUrlToBitmap(src){
   return await loadVideoImage(src);
 }
 function closeVideoBitmap(img){try{if(typeof img?.close==='function')img.close();}catch(e){}}
+
+function refreshMemoryMusicChoice(){
+  document.querySelectorAll('[data-music-choice]').forEach(btn=>{
+    const active=btn.dataset.musicChoice===memoryVideoState.musicChoice;
+    btn.classList.toggle('active',active);
+    btn.setAttribute('aria-pressed',active?'true':'false');
+  });
+  const custom=document.getElementById('memoryCustomMusicWrap');
+  if(custom)custom.classList.toggle('hidden',memoryVideoState.musicChoice!=='custom');
+}
+
+function stopMemoryMusicPreview(){
+  const audio=document.getElementById('memoryMusicPreviewAudio');
+  if(audio){audio.pause();audio.removeAttribute('src');audio.load();}
+  memoryVideoState.previewMusic=null;
+  document.querySelectorAll('[data-preview-music]').forEach(el=>el.textContent='▶');
+}
+
+async function previewMemoryMusic(key,control){
+  const preset=MIMIBE_MUSIC_PRESETS[key];
+  if(!preset)return;
+  const audio=document.getElementById('memoryMusicPreviewAudio');
+  if(!audio)return;
+  if(memoryVideoState.previewMusic===key && !audio.paused){
+    audio.pause();
+    memoryVideoState.previewMusic=null;
+    control.textContent='▶';
+    return;
+  }
+  stopMemoryMusicPreview();
+  audio.src=preset.url;
+  audio.currentTime=0;
+  audio.volume=.75;
+  try{
+    await audio.play();
+    memoryVideoState.previewMusic=key;
+    control.textContent='❚❚';
+    audio.onended=()=>stopMemoryMusicPreview();
+  }catch(e){
+    console.warn('MimiBe music preview failed',e);
+    alert(videoText('Ukázku hudby se nepodařilo přehrát.','The music preview could not be played.'));
+  }
+}
+
+async function selectedMemoryMusicBlob(){
+  const choice=memoryVideoState.musicChoice||'none';
+  if(choice==='none')return null;
+  if(choice==='custom'){
+    return document.getElementById('memoryVideoMusic')?.files?.[0]||null;
+  }
+  const preset=MIMIBE_MUSIC_PRESETS[choice];
+  if(!preset)return null;
+  const response=await fetch(preset.url,{mode:'cors'});
+  if(!response.ok)throw new Error('Music download failed: '+response.status);
+  return await response.blob();
+}
+
 async function makeLoopedAudioBuffer(file,totalSec){
   if(!file)return null;
   const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;
@@ -1552,13 +1642,22 @@ async function generateAutomaticMemoryVideo(){
     output.addVideoTrack(videoSource,{frameRate:FPS});
 
     let audioSource=null,audioBuffer=null;
-    const musicFile=document.getElementById('memoryVideoMusic')?.files?.[0];
-    if(musicFile){
+    if(memoryVideoState.musicChoice!=='none'){
       try{
         status.textContent=videoText('Připravuji hudbu…','Preparing music…');
-        audioBuffer=await makeLoopedAudioBuffer(musicFile,totalSec);
-        if(audioBuffer){audioSource=new AudioBufferSource({codec:'aac',quality:new Quality({bitrate:128_000})});output.addAudioTrack(audioSource);}
-      }catch(e){console.warn('MimiBe: audio skipped',e);audioSource=null;audioBuffer=null;}
+        const musicBlob=await selectedMemoryMusicBlob();
+        if(musicBlob){
+          audioBuffer=await makeLoopedAudioBuffer(musicBlob,totalSec);
+          if(audioBuffer){
+            audioSource=new AudioBufferSource({codec:'aac',quality:new Quality({bitrate:128_000})});
+            output.addAudioTrack(audioSource);
+          }
+        }
+      }catch(e){
+        console.warn('MimiBe: audio skipped',e);
+        audioSource=null;audioBuffer=null;
+        alert(videoText('Vybranou hudbu se nepodařilo načíst. Video se vytvoří bez hudby.','The selected music could not be loaded. The video will be created without music.'));
+      }
     }
 
     await output.start();
@@ -1625,5 +1724,20 @@ document.addEventListener('click',e=>{
   if(e.target.closest('#memoryVideoSelectAll')){
     memoryVideoState.selected=new Set(memoryVideoState.photos.slice(0,MEMORY_VIDEO_MAX_PHOTOS).map(p=>String(p.id)));
     refreshMemoryVideoSelection();
+  }
+  const previewBtn=e.target.closest('[data-preview-music]');
+  if(previewBtn){
+    e.preventDefault();e.stopPropagation();
+    previewMemoryMusic(previewBtn.dataset.previewMusic,previewBtn);
+    return;
+  }
+  const musicBtn=e.target.closest('[data-music-choice]');
+  if(musicBtn){
+    stopMemoryMusicPreview();
+    memoryVideoState.musicChoice=musicBtn.dataset.musicChoice||'none';
+    refreshMemoryMusicChoice();
+    if(memoryVideoState.musicChoice==='custom'){
+      setTimeout(()=>document.getElementById('memoryVideoMusic')?.click(),0);
+    }
   }
 });

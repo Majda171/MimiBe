@@ -1,4 +1,4 @@
-const CACHE='mimibe-20260811-mediabunny-v1';
+const CACHE='mimibe-20260811-music-library-v1';
 const APP_SHELL=["./", "./index.html", "./style.css", "./app.js", "./manifest.webmanifest", "./assets/baby-neutral.webp", "./assets/baby-pink.webp", "./assets/baby-blue.webp", "./assets/mimibe-logo.svg", "./pwa-icons/icon-192.png", "./pwa-icons/icon-512.png"];
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(APP_SHELL)));
