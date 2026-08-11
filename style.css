@@ -1376,23 +1376,193 @@ body[data-theme="blue"] .nav-item.active{
 .memory-video-privacy{display:block;text-align:center;color:var(--muted);margin-top:14px}
 @media(max-width:360px){.memory-video-actions{grid-template-columns:1fr}.memory-video-summary{grid-template-columns:1fr 1fr}}
 
-/* PWA 1.2 — choose gallery or camera */
-.photo-source-picker{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
-  width:100%;
-  margin:10px 0 14px;
+/* v81 — photo viewer + refined memory gallery */
+.photo-card .photo-open{display:block;width:100%;padding:0;border:0;background:transparent;cursor:zoom-in}
+.photo-card .photo-open img{width:100%;aspect-ratio:1;object-fit:cover;display:block;transition:transform .24s ease}
+.photo-card:active .photo-open img{transform:scale(1.015)}
+.photo-card .delete-photo{display:grid;place-items:center;right:9px;top:9px;width:34px;height:34px;padding:0;background:rgba(255,255,255,.92);box-shadow:0 3px 12px rgba(51,38,31,.13);backdrop-filter:blur(8px);color:#8d6d61}
+.photo-card .delete-photo svg{width:17px;height:17px;fill:currentColor}
+.photo-card .delete-photo:active{transform:scale(.94)}
+
+.photo-viewer-dialog{width:100vw;max-width:none;height:100dvh;max-height:none;margin:0;border:0;padding:0;background:rgba(24,20,18,.96)}
+.photo-viewer-dialog::backdrop{background:rgba(24,20,18,.96)}
+.photo-viewer-shell{height:100%;display:grid;grid-template-rows:auto minmax(0,1fr) auto auto;color:#fff;padding:max(14px,env(safe-area-inset-top)) 14px max(18px,env(safe-area-inset-bottom))}
+.photo-viewer-topbar{display:flex;align-items:center;justify-content:space-between;padding:0 2px 10px;color:rgba(255,255,255,.72);font-size:13px}
+.photo-viewer-close{width:42px;height:42px;border:0;border-radius:50%;background:rgba(255,255,255,.12);color:#fff;font-size:28px;line-height:1}
+.photo-viewer-stage{position:relative;display:grid;place-items:center;min-height:0;overflow:hidden}
+.photo-viewer-stage img{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;border-radius:15px;box-shadow:0 12px 45px rgba(0,0,0,.28)}
+.photo-viewer-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:2;width:44px;height:54px;border:0;border-radius:22px;background:rgba(255,255,255,.13);color:#fff;font-size:34px;backdrop-filter:blur(8px)}
+.photo-viewer-nav.prev{left:0}.photo-viewer-nav.next{right:0}.photo-viewer-nav:disabled{display:none}
+.photo-viewer-info{text-align:center;padding:16px 18px 6px;min-height:54px}.photo-viewer-info strong{display:block;font-size:16px}.photo-viewer-info small{display:block;margin-top:5px;color:rgba(255,255,255,.62)}
+.photo-viewer-delete{justify-self:center;display:flex;align-items:center;gap:7px;border:0;background:transparent;color:rgba(255,255,255,.58);padding:9px 14px;font-size:13px}
+.photo-viewer-delete svg{width:15px;height:15px;fill:currentColor}
+
+/* softer, more editorial memory video */
+.video-maker-card{border:1px solid var(--line);box-shadow:0 10px 28px rgba(75,54,42,.06);overflow:hidden;position:relative}
+.video-maker-card::after{content:'♡';position:absolute;right:18px;top:13px;font-size:30px;color:var(--theme-accent,var(--accent));opacity:.18;pointer-events:none}
+.memory-video-preview{background:var(--theme-bg-soft,#f4eee8);box-shadow:0 10px 30px rgba(50,38,30,.10)}
+.memory-video-summary>div{border:1px solid color-mix(in srgb,var(--theme-accent,var(--accent)) 14%,transparent)}
+
+/* Ko-fi support link */
+.support-link{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+/* Checklist improvements */
+.quick-grid{margin-top:14px}.checklist-open-row{cursor:pointer;border-radius:16px;padding-left:4px;padding-right:4px}.checklist-open-row:active{background:var(--soft)}
+.custom-checklist-list{display:flex;flex-direction:column}.custom-check-row{width:100%;border:0;border-top:1px solid var(--line);background:transparent;display:flex;align-items:center;gap:12px;padding:14px 0;color:var(--text);text-align:left}.custom-check-icon{width:42px;height:42px;border-radius:50%;background:var(--soft);display:grid;place-items:center;color:var(--accent);font-weight:800}.custom-check-copy{flex:1;min-width:0}.custom-check-title{display:flex;justify-content:space-between;gap:10px;margin-bottom:8px;font:inherit}.custom-check-title em{font-style:normal;color:var(--muted);font-size:13px}.custom-check-chevron{font-size:28px;color:var(--muted)}.create-checklist-btn{width:100%;margin-top:10px;border:1px dashed var(--accent);background:var(--soft);color:var(--accent);border-radius:16px;padding:13px;font-weight:700}.checklist-switcher{display:flex;gap:8px;overflow-x:auto;padding:14px 0 4px;scrollbar-width:none}.checklist-switcher::-webkit-scrollbar{display:none}.checklist-switcher button{white-space:nowrap;border:1px solid var(--line);background:#fff;color:var(--text);border-radius:999px;padding:9px 12px;font:inherit;font-size:13px}.checklist-switcher button.active{background:var(--accent);border-color:var(--accent);color:#fff}.delete-custom-checklist{width:100%;margin-top:16px;border:0;background:transparent;color:#a34c4c;padding:10px;font:inherit}.delete-custom-checklist[hidden]{display:none}
+
+/* Checklist summary rows are fully tappable */
+.checklist-open-row{transition:background .15s ease}.checklist-open-row:focus-visible{outline:2px solid var(--accent);outline-offset:2px}.checklist-chevron{margin-left:auto;padding:0 8px;font-size:28px;line-height:1;color:var(--muted);font-weight:300}
+
+
+/* MimiBe checklist polish */
+.checklist-item input[type="checkbox"]{accent-color:#C9A77C}
+.checklist-dialog-progress{padding:8px 2px 4px}
+.checklist-dialog-progress-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:13px;color:var(--muted)}
+.checklist-dialog-progress-head strong{color:var(--text);font-size:13px}
+.checklist-dialog-progress .bar i,.custom-check-row .bar i,.checklist-card .bar i{background:#C9A77C!important}
+
+/* custom checklist summary — same progress layout as built-in checklists */
+.custom-checklist-list .custom-check-row.check-row{border:0;background:transparent;padding:12px 0;gap:14px;border-radius:0}
+.custom-checklist-list .custom-check-row.check-row .custom-check-icon.circle-icon{width:48px;height:48px;flex:0 0 48px}
+.custom-checklist-list .custom-check-copy.check-content{display:block;flex:1;min-width:0}
+.custom-checklist-list .custom-check-title.check-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
+.custom-checklist-list .custom-check-title.check-title>span{color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.custom-checklist-list .custom-check-title.check-title em{font-style:normal;color:var(--muted);font-size:inherit;white-space:nowrap}
+
+/* Fix: progress bar in user-created checklist summaries */
+.custom-checklist-list .custom-check-row .bar{display:block;width:100%;height:8px}
+\n\n/* v79 — voluntary essentials budget */\n#checklistDialog .checklist-item.equipment-item{display:block;padding:4px 0 10px}\n#checklistDialog .checklist-item-main{display:flex;align-items:center;gap:8px}\n#checklistDialog .checklist-item-main label{flex:1}\n.equipment-price-wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 42px 4px 34px;color:var(--muted);font-size:12px}\n.equipment-price-input{display:flex;align-items:center;gap:6px}\n.equipment-price-input input{width:92px;border:1px solid var(--line);background:#fff;border-radius:11px;padding:8px 9px;text-align:right;font:inherit;color:var(--text)}\n.equipment-price-input em{font-style:normal;color:var(--muted)}\n.equipment-budget-panel{margin:10px 0 4px;padding:14px;border:1px solid var(--line);border-radius:18px;background:var(--soft)}\n.equipment-budget-start{width:100%;border:0;background:transparent;color:var(--accent);font:inherit;font-weight:700;padding:3px}\n.equipment-budget-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}\n.equipment-budget-head>div{display:flex;flex-direction:column;gap:3px}.equipment-budget-head span{font-size:12px;color:var(--muted)}.equipment-budget-head strong{font-size:18px}\n.equipment-budget-head button{border:0;background:transparent;color:var(--accent);font:inherit;font-weight:700}\n.equipment-budget-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}\n.equipment-budget-stats>div{background:rgba(255,255,255,.72);border-radius:13px;padding:10px}\n.equipment-budget-stats span{display:block;font-size:11px;color:var(--muted);margin-bottom:3px}.equipment-budget-stats strong{font-size:14px}\n.equipment-budget-bar{height:9px}.equipment-budget-bar i{background:var(--accent)!important}\n.equipment-budget-bar.over i{background:#b56a62!important}\n@media(max-width:360px){.equipment-price-wrap{padding-right:4px}.equipment-budget-stats{grid-template-columns:1fr}}\n
+/* v80 — polished equipment budget and mobile layout */
+#checklistDialog{max-height:min(88vh,760px);overflow:auto;padding:18px}
+#checklistDialog .checklist-items{gap:0;margin:14px 0 16px}
+#checklistDialog .equipment-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center;padding:14px 2px;border-bottom:1px solid var(--line)}
+.equipment-item-left{min-width:0;display:flex;flex-direction:column;gap:7px}
+.equipment-check-label{display:flex!important;align-items:center!important;gap:10px!important;padding:0!important;border:0!important;min-width:0;font-weight:600}
+.equipment-check-label input{flex:0 0 auto}
+.equipment-item-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.equipment-status{align-self:flex-start;border-radius:999px;padding:4px 9px;font-size:11px;line-height:1.2}
+.equipment-status.is-done{background:#eaf5e8;color:#39743c}
+.equipment-status.is-pending{background:#f4eee8;color:#776b61}
+.equipment-item-right{display:flex;align-items:flex-end;gap:8px}
+.equipment-price-wrap{display:flex;flex-direction:column;align-items:flex-start;gap:5px;padding:0;color:var(--muted);font-size:11px}
+.equipment-price-input{display:flex;align-items:center;gap:5px}
+.equipment-price-input input{width:94px;min-width:0;border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 9px;text-align:right;font:inherit;color:var(--text)}
+.equipment-price-input em{font-style:normal;color:var(--muted);font-size:12px}
+.delete-checklist-item.equipment-delete{width:auto;height:auto;flex:0 0 auto;border:0;border-radius:10px;background:transparent;color:#a56a62;font:inherit;font-size:11px;padding:8px 4px}
+.equipment-budget-panel{margin:12px 0 8px;padding:16px;border:1px solid var(--line);border-radius:20px;background:rgba(255,255,255,.64)}
+.equipment-budget-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:16px}
+.equipment-budget-head>div{display:flex;flex-direction:column;gap:3px}
+.equipment-budget-head span{font-size:12px;color:var(--muted)}
+.equipment-budget-head strong{font-size:20px}
+.equipment-budget-head button{border:1px solid var(--line);background:#fff;color:var(--accent);font:inherit;font-weight:700;border-radius:11px;padding:8px 11px}
+.equipment-budget-overview{display:grid;grid-template-columns:1fr 96px 1fr;gap:10px;align-items:center}
+.equipment-budget-stat{text-align:center;min-width:0}.equipment-budget-stat span{display:block;font-size:11px;color:var(--muted);margin-bottom:5px}.equipment-budget-stat strong{display:block;font-size:16px;white-space:nowrap}.equipment-budget-stat.over strong{color:#b56a62}
+.equipment-budget-ring{--budget-pct:0;aspect-ratio:1;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--accent) calc(var(--budget-pct)*1%),#ece8e3 0);position:relative}
+.equipment-budget-ring::after{content:"";position:absolute;inset:9px;border-radius:50%;background:var(--card)}
+.equipment-budget-ring.over{background:conic-gradient(#b56a62 calc(var(--budget-pct)*1%),#ece8e3 0)}
+.equipment-budget-ring>div{position:relative;z-index:1;text-align:center;display:flex;flex-direction:column;line-height:1.05}.equipment-budget-ring strong{font-size:18px}.equipment-budget-ring span{font-size:9px;color:var(--muted);margin-top:4px}
+.equipment-budget-note{margin:14px -16px -16px;padding:11px 16px;border-top:1px solid var(--line);font-size:11px;color:var(--muted);text-align:center}
+.equipment-budget-start{width:100%;border:1px dashed var(--accent);background:var(--soft);color:var(--accent);font:inherit;font-weight:700;border-radius:14px;padding:12px}
+@media(max-width:390px){
+  #checklistDialog{padding:16px}
+  #checklistDialog .equipment-item{grid-template-columns:minmax(0,1fr) 116px;gap:8px}
+  .equipment-item-right{gap:4px}
+  .equipment-price-input input{width:76px;padding:7px 7px}
+  .delete-checklist-item.equipment-delete{font-size:10px;padding:7px 0}
+  .equipment-budget-panel{padding:14px}
+  .equipment-budget-overview{grid-template-columns:1fr 82px 1fr;gap:6px}
+  .equipment-budget-stat strong{font-size:14px}
+  .equipment-budget-ring::after{inset:8px}
+  .equipment-budget-ring strong{font-size:16px}
 }
-.photo-source-btn{
-  min-height:48px;
+@media(max-width:340px){
+  #checklistDialog .equipment-item{grid-template-columns:1fr}
+  .equipment-item-right{justify-content:space-between;align-items:flex-end;padding-left:28px}
+  .equipment-budget-overview{grid-template-columns:1fr 76px 1fr}
+}
+
+
+/* v81 — cleaner checklist rows */
+#checklistDialog .equipment-item{padding:13px 2px}
+.equipment-item-left{gap:0}
+.equipment-status{display:none!important}
+.equipment-check-label{min-height:40px}
+.equipment-price-wrap>span:first-child{font-size:10px;letter-spacing:.01em}
+.equipment-item-right{align-items:center}
+.delete-checklist-item.equipment-delete,
+.delete-checklist-item.checklist-delete-text{
+  width:auto;
+  height:auto;
+  flex:0 0 auto;
+  border:0;
+  border-radius:10px;
+  background:transparent;
+  color:#a56a62;
+  font:inherit;
+  font-size:11px;
+  padding:8px 4px;
+}
+#checklistDialog .checklist-item:not(.equipment-item){padding:12px 2px}
+#checklistDialog .checklist-item:not(.equipment-item) .checklist-item-main{width:100%;display:flex;align-items:center;gap:10px}
+#checklistDialog .checklist-item:not(.equipment-item) .checklist-item-main label{flex:1;min-width:0;padding:0;border:0;font-weight:500}
+@media(max-width:390px){
+  #checklistDialog .equipment-item{grid-template-columns:minmax(0,1fr) 112px}
+  .equipment-item-right{gap:3px}
+  .equipment-price-input input{width:72px}
+  .delete-checklist-item.equipment-delete,.delete-checklist-item.checklist-delete-text{font-size:10px;padding:7px 0}
+}
+
+/* Currency selector — matches MimiBe settings UI */
+.currency-settings-card{
+  display:block;
+}
+.currency-settings-card > div:first-child{
+  margin-bottom:14px;
+}
+.currency-options{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
   width:100%;
+}
+.currency-option{
+  appearance:none;
+  -webkit-appearance:none;
+  min-width:0;
+  min-height:58px;
+  padding:9px 4px 8px;
+  border:1px solid var(--line, #eadbcf);
+  border-radius:16px;
+  background:#fffdfb;
+  color:var(--text, #28231f);
+  font:inherit;
+  cursor:pointer;
   display:flex;
+  flex-direction:column;
   align-items:center;
   justify-content:center;
-  gap:7px;
-  white-space:normal;
+  gap:2px;
+  transition:transform .12s ease, background .15s ease, border-color .15s ease, box-shadow .15s ease;
 }
-@media(max-width:360px){
-  .photo-source-picker{grid-template-columns:1fr}
+.currency-option strong{
+  font-size:18px;
+  line-height:1;
+  font-weight:700;
+}
+.currency-option span{
+  font-size:11px;
+  line-height:1.2;
+  opacity:.62;
+  letter-spacing:.02em;
+}
+.currency-option.active{
+  background:var(--accent-soft, #f4eadf);
+  border-color:var(--accent, #cda573);
+  box-shadow:0 0 0 1px color-mix(in srgb, var(--accent, #cda573) 18%, transparent);
+}
+.currency-option:active{
+  transform:scale(.97);
+}
+@media (max-width:360px){
+  .currency-options{gap:6px}
+  .currency-option{border-radius:14px;min-height:54px}
 }
