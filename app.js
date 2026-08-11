@@ -1081,8 +1081,8 @@ function setMemoryVideoLanguage(){
   set('videoDialogEyebrow','Vzpomínkové video','Memory video');
   set('videoDialogTitle','Vytvořit automatické video ♡','Create automatic video ♡');
   set('videoDialogIntro',
-      'MimiBe seřadí tvoje vzpomínky podle data a vytvoří z nich jemné video s logem, plynulými prolínačkami a pomalým pohybem.',
-      'MimiBe sorts your memories by date and creates a gentle video with the MimiBe logo, smooth crossfades and slow motion.');
+      'Vyber 2–15 fotek. MimiBe z nich vytvoří plynulé MP4 video s jemnými prolínačkami a celými fotografiemi bez ořezu.',
+      'Choose 2–15 photos. MimiBe will create a smooth MP4 video with gentle crossfades and uncropped photos.');
   set('videoPhotoCountLabel','fotek','photos');
   set('videoDurationLabel','délka','duration');
   set('videoPickerTitle','Vyber fotky do videa','Choose photos for your video');
@@ -1379,170 +1379,242 @@ function chooseRecordingMime(){
   return types.find(t=>window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || '';
 }
 
+const MEDIABUNNY_URL='https://cdn.jsdelivr.net/npm/mediabunny@1.53.0/dist/bundles/mediabunny.min.mjs';
+let mediabunnyModulePromise=null;
+function loadMediabunny(){
+  if(!mediabunnyModulePromise) mediabunnyModulePromise=import(MEDIABUNNY_URL);
+  return mediabunnyModulePromise;
+}
+function videoSmoothstep(x){x=Math.max(0,Math.min(1,x));return x*x*(3-2*x);}
+function videoDrawCover(ctx,img,w,h,zoom=1,alpha=1){
+  const iw=img.width||img.naturalWidth, ih=img.height||img.naturalHeight;
+  const s=Math.max(w/iw,h/ih)*zoom, dw=iw*s, dh=ih*s;
+  ctx.save();ctx.globalAlpha*=alpha;ctx.drawImage(img,(w-dw)/2,(h-dh)/2,dw,dh);ctx.restore();
+}
+function videoDrawContain(ctx,img,w,h,progress=0,alpha=1){
+  const iw=img.width||img.naturalWidth, ih=img.height||img.naturalHeight;
+  const maxW=w*.91,maxH=h*.86;
+  const base=Math.min(maxW/iw,maxH/ih);
+  const zoom=1+0.028*videoSmoothstep(progress);
+  const s=base*zoom, dw=iw*s,dh=ih*s;
+  const drift=(videoSmoothstep(progress)-.5)*w*.018;
+  ctx.save();ctx.globalAlpha*=alpha;
+  ctx.shadowColor='rgba(35,25,20,.22)';ctx.shadowBlur=24;ctx.shadowOffsetY=7;
+  ctx.drawImage(img,(w-dw)/2+drift,(h-dh)/2,dw,dh);
+  ctx.restore();
+}
+function drawMemoryPhotoScene(ctx,img,w,h,progress=0,alpha=1){
+  ctx.save();ctx.globalAlpha*=alpha;
+  ctx.fillStyle='#f7f3ed';ctx.fillRect(0,0,w,h);
+  ctx.save();
+  try{ctx.filter='blur(28px) saturate(.90) brightness(.86)';}catch(e){}
+  videoDrawCover(ctx,img,w,h,1.18,1);
+  try{ctx.filter='none';}catch(e){}
+  ctx.restore();
+  ctx.fillStyle='rgba(247,243,237,.22)';ctx.fillRect(0,0,w,h);
+  videoDrawContain(ctx,img,w,h,progress,1);
+  ctx.restore();
+}
+function drawMemoryIntroClean(ctx,w,h,progress,logoImg,firstImg,babyImg,babyName,period){
+  const gender=data?.babyGender||'neutral';
+  const nameColor=gender==='girl'?'#E8A0B5':gender==='boy'?'#91C9E2':'#CDA06C';
+  const p=videoSmoothstep(progress),baseAlpha=ctx.globalAlpha;
+  ctx.fillStyle='#F7F3ED';ctx.fillRect(0,0,w,h);
+
+  if(logoImg){
+    ctx.save();ctx.globalAlpha=baseAlpha*Math.min(1,p*2);
+    const maxW=w*.36,maxH=h*.105,r=Math.min(maxW/logoImg.width,maxH/logoImg.height);
+    const lw=logoImg.width*r,lh=logoImg.height*r;
+    ctx.drawImage(logoImg,(w-lw)/2,h*.095-lh/2,lw,lh);ctx.restore();
+  }
+
+  // First photo is always shown in full. The area behind it uses the same image blurred,
+  // so portrait, landscape and square images all look intentional without cropping the original.
+  const x=w*.075,y=h*.19,pw=w*.85,ph=h*.49;
+  ctx.save();ctx.beginPath();ctx.roundRect(x,y,pw,ph,22);ctx.clip();
+  ctx.fillStyle='#efe7de';ctx.fillRect(x,y,pw,ph);
+  if(firstImg){
+    ctx.save();try{ctx.filter='blur(24px) brightness(.90)';}catch(e){}
+    const iw=firstImg.width||firstImg.naturalWidth, ih=firstImg.height||firstImg.naturalHeight;
+    const s=Math.max(pw/iw,ph/ih)*1.12,dw=iw*s,dh=ih*s;
+    ctx.drawImage(firstImg,x+(pw-dw)/2,y+(ph-dh)/2,dw,dh);
+    try{ctx.filter='none';}catch(e){}ctx.restore();
+    const iw2=firstImg.width||firstImg.naturalWidth, ih2=firstImg.height||firstImg.naturalHeight;
+    const s2=Math.min(pw*.94/iw2,ph*.94/ih2),dw2=iw2*s2,dh2=ih2*s2;
+    ctx.drawImage(firstImg,x+(pw-dw2)/2,y+(ph-dh2)/2,dw2,dh2);
+  }
+  ctx.restore();
+
+  ctx.textAlign='center';ctx.globalAlpha=baseAlpha*Math.min(1,Math.max(0,(p-.10)*1.8));
+  const nm=(babyName||videoText('Naše miminko','Our baby')).toUpperCase();
+  let fs=Math.round(w*.078);ctx.font=`800 ${fs}px Arial, sans-serif`;
+  while(ctx.measureText(nm).width>w*.80 && fs>30){fs-=2;ctx.font=`800 ${fs}px Arial, sans-serif`;}
+  ctx.fillStyle=nameColor;ctx.fillText(nm,w/2,h*.745);
+  if(period){ctx.fillStyle='#25201d';ctx.font=`500 ${Math.round(w*.041)}px Arial, sans-serif`;ctx.fillText(period,w/2,h*.797);}
+  if(babyImg){
+    const maxW=w*.22,maxH=h*.15,r=Math.min(maxW/babyImg.width,maxH/babyImg.height);
+    const bw=babyImg.width*r,bh=babyImg.height*r;ctx.drawImage(babyImg,(w-bw)/2,h*.895-bh/2,bw,bh);
+  }
+  ctx.globalAlpha=baseAlpha;
+}
+function drawMemoryOutroClean(ctx,w,h,progress,logoImg){
+  const p=videoSmoothstep(progress),baseAlpha=ctx.globalAlpha;ctx.fillStyle='#F7F3ED';ctx.fillRect(0,0,w,h);
+  ctx.textAlign='center';ctx.globalAlpha=baseAlpha*Math.min(1,p*1.7);
+  if(logoImg){const maxW=w*.42,maxH=h*.14,r=Math.min(maxW/logoImg.width,maxH/logoImg.height);const lw=logoImg.width*r,lh=logoImg.height*r;ctx.drawImage(logoImg,(w-lw)/2,h*.42-lh/2,lw,lh);}
+  ctx.fillStyle='#68544a';ctx.font=`600 ${Math.round(w*.043)}px Arial, sans-serif`;ctx.fillText(videoText('A náš příběh pokračuje… ♡','And our story continues… ♡'),w/2,h*.58);ctx.globalAlpha=baseAlpha;
+}
+function drawPhotoTimeline(ctx,imgs,w,h,local,photoSec,fadeSec){
+  const step=photoSec-fadeSec;
+  let j=Math.floor(Math.max(0,local)/step);
+  j=Math.min(imgs.length-1,j);
+  const since=local-j*step;
+  if(j>0 && since<fadeSec){
+    const blend=videoSmoothstep(since/fadeSec);
+    const prevProg=Math.min(1,Math.max(0,(local-(j-1)*step)/photoSec));
+    const curProg=Math.min(1,Math.max(0,since/photoSec));
+    drawMemoryPhotoScene(ctx,imgs[j-1],w,h,prevProg,1-blend);
+    drawMemoryPhotoScene(ctx,imgs[j],w,h,curProg,blend);
+  }else{
+    const prog=Math.min(1,Math.max(0,since/photoSec));
+    drawMemoryPhotoScene(ctx,imgs[j],w,h,prog,1);
+  }
+}
+async function dataUrlToBitmap(src){
+  const blob=await (await fetch(src)).blob();
+  if('createImageBitmap' in window) return await createImageBitmap(blob);
+  return await loadVideoImage(src);
+}
+function closeVideoBitmap(img){try{if(typeof img?.close==='function')img.close();}catch(e){}}
+async function makeLoopedAudioBuffer(file,totalSec){
+  if(!file)return null;
+  const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;
+  const ac=new AC();
+  try{
+    const decoded=await ac.decodeAudioData((await file.arrayBuffer()).slice(0));
+    const sr=decoded.sampleRate,channels=Math.min(2,decoded.numberOfChannels),length=Math.max(1,Math.ceil(totalSec*sr));
+    const out=ac.createBuffer(channels,length,sr);
+    for(let ch=0;ch<channels;ch++){
+      const src=decoded.getChannelData(Math.min(ch,decoded.numberOfChannels-1)),dest=out.getChannelData(ch);
+      let pos=0;
+      while(pos<dest.length){const n=Math.min(src.length,dest.length-pos);dest.set(src.subarray(0,n),pos);pos+=n;if(!src.length)break;}
+      const fadeIn=Math.min(Math.floor(sr*.35),dest.length),fadeOut=Math.min(Math.floor(sr*.8),dest.length);
+      for(let i=0;i<fadeIn;i++)dest[i]*=i/fadeIn;
+      for(let i=0;i<fadeOut;i++){const k=dest.length-fadeOut+i;dest[k]*=(1-i/fadeOut);}
+    }
+    return out;
+  }finally{try{await ac.close();}catch(e){}}
+}
+
 async function generateAutomaticMemoryVideo(){
   if(memoryVideoState.working)return;
   const photos=selectedMemoryVideoPhotos();
-  if(photos.length<2)return;
+  if(photos.length<2 || photos.length>15)return;
 
-  if(!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream){
-    alert(videoText(
-      'Tento prohlížeč neumí vytvořit video přímo v zařízení. Zkus prosím aktuální Chrome, Edge nebo Safari.',
-      'This browser cannot create a video directly on the device. Please try a current version of Chrome, Edge or Safari.'
-    ));
+  if(!window.VideoEncoder){
+    alert(videoText('Tento telefon nepodporuje moderní kódování videa (WebCodecs).','This phone does not support modern video encoding (WebCodecs).'));
     return;
   }
 
   memoryVideoState.working=true;
-  const generate=document.getElementById('generateMemoryVideo');
-  const cancel=document.getElementById('cancelMemoryVideo');
-  const progressBox=document.getElementById('memoryVideoProgress');
-  const progressFill=document.getElementById('memoryVideoProgressFill');
-  const progressText=document.getElementById('memoryVideoProgressText');
-  const status=document.getElementById('memoryVideoStatus');
-  const preview=document.getElementById('memoryVideoPreview');
-  const download=document.getElementById('downloadMemoryVideo');
-  generate.disabled=true;cancel.disabled=true;
-  progressBox.classList.remove('hidden');
-  preview.classList.add('hidden');download.classList.add('hidden');
+  const generate=document.getElementById('generateMemoryVideo'),cancel=document.getElementById('cancelMemoryVideo');
+  const progressBox=document.getElementById('memoryVideoProgress'),progressFill=document.getElementById('memoryVideoProgressFill');
+  const progressText=document.getElementById('memoryVideoProgressText'),status=document.getElementById('memoryVideoStatus');
+  const preview=document.getElementById('memoryVideoPreview'),download=document.getElementById('downloadMemoryVideo');
+  generate.disabled=true;cancel.disabled=true;progressBox.classList.remove('hidden');preview.classList.add('hidden');download.classList.add('hidden');
 
+  const bitmaps=[];
   try{
-    status.textContent=videoText('Načítám fotky…','Loading photos…');
-    const imgs=[];
-    const logoImg=await loadMemoryVideoLogo();
-    const babyImg=await loadMemoryVideoBaby();
+    status.textContent=videoText('Načítám nový video modul…','Loading the new video engine…');
+    progressFill.style.width='2%';progressText.textContent='2 %';
+    const MB=await loadMediabunny();
+    const {Output,Mp4OutputFormat,BufferTarget,CanvasSource,AudioBufferSource,Quality}=MB;
+
+    status.textContent=videoText('Připravuji fotky…','Preparing photos…');
+    const logoImg=await loadMemoryVideoLogo(),babyImg=await loadMemoryVideoBaby();
     for(let i=0;i<photos.length;i++){
-      imgs.push(await loadVideoImage(photos[i].image));
-      const q=Math.round((i+1)/photos.length*12);
-      progressFill.style.width=q+'%';progressText.textContent=q+' %';
+      bitmaps.push(await dataUrlToBitmap(photos[i].image));
+      const pct=3+Math.round((i+1)/photos.length*8);progressFill.style.width=pct+'%';progressText.textContent=pct+' %';
     }
 
-    // 9:16 portrait HD, practical for mobile and fast enough for local rendering.
-    const W=720,H=1280,FPS=30;
-    const canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;
+    const W=720,H=1280,FPS=30,FRAME=1/FPS;
+    const INTRO=3.5,INTRO_FADE=1.0,PHOTO=4.2,FADE=1.2,OUTRO=2.7,OUTRO_FADE=1.0;
+    const photoStart=INTRO-INTRO_FADE, step=PHOTO-FADE;
+    const photoEnd=photoStart+(photos.length-1)*step+PHOTO;
+    const outroStart=photoEnd-OUTRO_FADE,totalSec=outroStart+OUTRO;
+    const totalFrames=Math.ceil(totalSec*FPS);
+
+    const canvas=typeof OffscreenCanvas!=='undefined'?new OffscreenCanvas(W,H):Object.assign(document.createElement('canvas'),{width:W,height:H});
+    canvas.width=W;canvas.height=H;
     const ctx=canvas.getContext('2d',{alpha:false});
-    const videoStream=canvas.captureStream(FPS);
 
-    let audioCtx=null,audioSource=null,audioDest=null;
-    const musicFile=document.getElementById('memoryVideoMusic').files?.[0];
-    let recordingStream=videoStream;
+    const output=new Output({format:new Mp4OutputFormat(),target:new BufferTarget()});
+    const videoSource=new CanvasSource(canvas,{codec:'avc',quality:new Quality({bitrate:4_000_000})});
+    output.addVideoTrack(videoSource,{frameRate:FPS});
 
+    let audioSource=null,audioBuffer=null;
+    const musicFile=document.getElementById('memoryVideoMusic')?.files?.[0];
     if(musicFile){
-      status.textContent=videoText('Připravuji hudbu…','Preparing music…');
-      audioCtx=new (window.AudioContext||window.webkitAudioContext)();
-      const audioBuffer=await decodeMusicFile(musicFile,audioCtx);
-      audioDest=audioCtx.createMediaStreamDestination();
-      audioSource=audioCtx.createBufferSource();
-      audioSource.buffer=audioBuffer;
-      audioSource.loop=true;
-      const gain=audioCtx.createGain();gain.gain.value=.72;
-      audioSource.connect(gain).connect(audioDest);
-      recordingStream=new MediaStream([...videoStream.getVideoTracks(),...audioDest.stream.getAudioTracks()]);
+      try{
+        status.textContent=videoText('Připravuji hudbu…','Preparing music…');
+        audioBuffer=await makeLoopedAudioBuffer(musicFile,totalSec);
+        if(audioBuffer){audioSource=new AudioBufferSource({codec:'aac',quality:new Quality({bitrate:128_000})});output.addAudioTrack(audioSource);}
+      }catch(e){console.warn('MimiBe: audio skipped',e);audioSource=null;audioBuffer=null;}
     }
 
-    const mime=chooseRecordingMime();
-    const rec=new MediaRecorder(recordingStream,mime?{mimeType:mime,videoBitsPerSecond:4_000_000}:{videoBitsPerSecond:4_000_000});
-    const chunks=[];
-    rec.ondataavailable=e=>{if(e.data?.size)chunks.push(e.data);};
-    const stopped=new Promise((resolve,reject)=>{rec.onstop=resolve;rec.onerror=e=>reject(e.error||e);});
+    await output.start();
+    if(audioSource&&audioBuffer){await audioSource.add(audioBuffer);audioSource.close();}
 
-    rec.start(500);
-    if(audioCtx && audioSource){
-      await audioCtx.resume();
-      audioSource.start();
-    }
-
-    const theme=data?.theme||'neutral';
-    const title=videoText('Náš malý velký příběh ♡','Our little big story ♡');
-    const firstDate=photos[0]?.date, lastDate=photos[photos.length-1]?.date;
+    const firstDate=photos[0]?.date,lastDate=photos[photos.length-1]?.date;
     let period='';
     try{
       if(firstDate&&lastDate){
-        const a=new Date(firstDate+'T00:00:00'), b=new Date(lastDate+'T00:00:00');
-        if(firstDate===lastDate){
-          period=videoLang()==='en'
-            ? new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'numeric',year:'numeric'}).format(a)
-            : `${a.getDate()}.${a.getMonth()+1}.${a.getFullYear()}`;
-        }else{
-          period=videoLang()==='en'
-            ? `${new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'numeric'}).format(a)} – ${new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'numeric',year:'numeric'}).format(b)}`
-            : `${a.getDate()}.${a.getMonth()+1}. – ${b.getDate()}.${b.getMonth()+1}. ${b.getFullYear()}`;
-        }
+        const a=new Date(firstDate+'T00:00:00'),b=new Date(lastDate+'T00:00:00');
+        if(firstDate===lastDate)period=videoLang()==='en'?new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'numeric',year:'numeric'}).format(a):`${a.getDate()}.${a.getMonth()+1}.${a.getFullYear()}`;
+        else period=videoLang()==='en'?`${new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'numeric'}).format(a)} – ${new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'numeric',year:'numeric'}).format(b)}`:`${a.getDate()}.${a.getMonth()+1}. – ${b.getDate()}.${b.getMonth()+1}. ${b.getFullYear()}`;
       }
     }catch(e){}
 
-    const introMs=4200, photoMs=5000, fadeMs=2200, outroMs=3000;
-    const totalMs=introMs+photos.length*photoMs+outroMs;
-    const start=performance.now();
-
-    status.textContent=videoText('MimiBe tvoří video…','MimiBe is creating your video…');
-
-    await new Promise(resolve=>{
-      function frame(now){
-        const elapsed=now-start;
-        if(elapsed<introMs){
-          drawVideoIntro(ctx,W,H,data?.babyName||'',period,theme,elapsed/introMs,logoImg,imgs[0],babyImg);
-        }else if(elapsed<introMs+photos.length*photoMs){
-          const rel=elapsed-introMs;
-          const idx=Math.min(photos.length-1,Math.floor(rel/photoMs));
-          const local=rel-idx*photoMs;
-          const p=local/photoMs;
-          const transition=(local>photoMs-fadeMs && idx<photos.length-1)?(local-(photoMs-fadeMs))/fadeMs:0;
-          let dateText='';
-          if(photos[idx].date){try{dateText=new Intl.DateTimeFormat(videoLang()==='en'?'en-GB':'cs-CZ',{day:'numeric',month:'long',year:'numeric'}).format(new Date(photos[idx].date+'T00:00:00'));}catch(e){dateText=photos[idx].date;}}
-          const caption=photos[idx].caption||photoCategoryLabel(photos[idx].type)||videoText('Naše vzpomínka','Our memory');
-          drawPhotoFrame(ctx,imgs[idx],W,H,p,idx<photos.length-1?imgs[idx+1]:null,transition,caption,dateText,theme);
-        }else{
-          drawVideoOutro(ctx,W,H,theme,(elapsed-(introMs+photos.length*photoMs))/outroMs,logoImg);
-        }
-
-        const pct=Math.min(99,12+Math.round(Math.max(0,elapsed)/totalMs*87));
-        progressFill.style.width=pct+'%';progressText.textContent=pct+' %';
-
-        if(elapsed<totalMs) requestAnimationFrame(frame);
-        else resolve();
+    status.textContent=videoText('Vykresluji plynulé video…','Rendering smooth video…');
+    for(let frame=0;frame<totalFrames;frame++){
+      const t=frame/FPS;
+      if(t<photoStart){
+        drawMemoryIntroClean(ctx,W,H,t/INTRO,logoImg,bitmaps[0],babyImg,data?.babyName||'',period);
+      }else if(t<INTRO){
+        const x=videoSmoothstep((t-photoStart)/INTRO_FADE);
+        ctx.clearRect(0,0,W,H);
+        ctx.save();ctx.globalAlpha=1-x;drawMemoryIntroClean(ctx,W,H,t/INTRO,logoImg,bitmaps[0],babyImg,data?.babyName||'',period);ctx.restore();
+        ctx.save();ctx.globalAlpha=x;drawPhotoTimeline(ctx,bitmaps,W,H,0,PHOTO,FADE);ctx.restore();
+      }else if(t<outroStart){
+        drawPhotoTimeline(ctx,bitmaps,W,H,t-photoStart,PHOTO,FADE);
+      }else if(t<photoEnd){
+        const x=videoSmoothstep((t-outroStart)/OUTRO_FADE);
+        ctx.clearRect(0,0,W,H);
+        ctx.save();ctx.globalAlpha=1-x;drawPhotoTimeline(ctx,bitmaps,W,H,t-photoStart,PHOTO,FADE);ctx.restore();
+        ctx.save();ctx.globalAlpha=x;drawMemoryOutroClean(ctx,W,H,(t-outroStart)/OUTRO,logoImg);ctx.restore();
+      }else{
+        drawMemoryOutroClean(ctx,W,H,(t-outroStart)/OUTRO,logoImg);
       }
-      requestAnimationFrame(frame);
-    });
 
-    await new Promise(r=>setTimeout(r,250));
-    rec.stop();
-    if(audioSource){try{audioSource.stop();}catch(e){}}
-    await stopped;
-    if(audioCtx){try{await audioCtx.close();}catch(e){}}
-
-    const recordedType=rec.mimeType || mime || 'video/webm';
-    const recordedBlob=new Blob(chunks,{type:recordedType});
-    let finalBlob=recordedBlob;
-    let finalType=recordedType;
-    // ffmpeg.wasm is used as an optional local finishing step. If a phone cannot load/run it,
-    // MimiBe safely keeps the already-created WebM/MP4 instead of failing the whole video.
-    if(!recordedType.includes('mp4')){
-      const mp4Blob=await tryFfmpegMp4(recordedBlob,status,progressFill,progressText);
-      if(mp4Blob?.size){finalBlob=mp4Blob;finalType='video/mp4';}
+      await videoSource.add(t,FRAME,{keyFrame:frame===0 || frame%(FPS*2)===0});
+      const pct=12+Math.round((frame+1)/totalFrames*84);progressFill.style.width=pct+'%';progressText.textContent=pct+' %';
+      if(frame%12===0)await new Promise(r=>setTimeout(r,0));
     }
+    videoSource.close();
+    status.textContent=videoText('Dokončuji MP4…','Finalising MP4…');progressFill.style.width='97%';progressText.textContent='97 %';
+    await output.finalize();
+
+    const blob=new Blob([output.target.buffer],{type:'video/mp4'});
     if(memoryVideoState.url)URL.revokeObjectURL(memoryVideoState.url);
-    memoryVideoState.url=URL.createObjectURL(finalBlob);
-
-    const isMp4=finalType.includes('mp4');
-    const ext=isMp4?'mp4':'webm';
-    download.download=`MimiBe-vzpominky.${ext}`;
-    download.href=memoryVideoState.url;
-    preview.src=memoryVideoState.url;
-    preview.classList.remove('hidden');
-    download.classList.remove('hidden');
-
-    progressFill.style.width='100%';progressText.textContent='100 %';
-    status.textContent=videoText('Hotovo ♡ Video je připravené.','Done ♡ Your video is ready.');
+    memoryVideoState.url=URL.createObjectURL(blob);
+    preview.src=memoryVideoState.url;preview.classList.remove('hidden');
+    download.href=memoryVideoState.url;download.download='MimiBe-vzpominky.mp4';download.classList.remove('hidden');
+    progressFill.style.width='100%';progressText.textContent='100 %';status.textContent=videoText('Hotovo ♡ Video je připravené.','Done ♡ Your video is ready.');
   }catch(err){
-    console.error(err);
+    console.error('MimiBe video error',err);
     status.textContent=videoText('Video se nepodařilo vytvořit.','The video could not be created.');
-    alert(videoText(
-      'Video se nepodařilo vytvořit. Zkus méně fotek, kratší hudbu nebo jiný prohlížeč.',
-      'The video could not be created. Try fewer photos, a different music file, or another browser.'
-    ));
+    alert(videoText('Video se nepodařilo vytvořit. Zkus nejdřív méně fotek (např. 3–5).','The video could not be created. Try fewer photos first (for example 3–5).'));
   }finally{
-    memoryVideoState.working=false;
-    generate.disabled=false;cancel.disabled=false;
+    bitmaps.forEach(closeVideoBitmap);memoryVideoState.working=false;generate.disabled=false;cancel.disabled=false;refreshMemoryVideoSelection();
   }
 }
 
