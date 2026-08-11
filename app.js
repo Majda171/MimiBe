@@ -751,7 +751,7 @@ Object.assign(MIMIBE_EN,{
   "Otevřít checklist Výbavička":"Open Baby essentials checklist",
   "Otevřít checklist Do porodnice":"Open Hospital bag checklist",
   "Přidat poznámku":"Add note",
-  "MimiBe použije všechny tvoje uložené vzpomínky, seřadí je podle data a samo přidá jemné prolínačky a pohyb.":"MimiBe uses all your saved memories, sorts them by date and automatically adds gentle crossfades and motion.",
+  "MimiBe seřadí tvoje vzpomínky podle data a vytvoří z nich jemné video s logem, plynulými prolínačkami a pomalým pohybem.":"MimiBe uses all your saved memories, sorts them by date and automatically adds gentle crossfades and motion.",
   "Načítám fotky…":"Loading photos…",
   "Připravuji hudbu…":"Preparing music…",
   "MimiBe tvoří video…":"MimiBe is creating your video…",
@@ -1052,7 +1052,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 
 // MimiBe automatic local memory video creator
-const memoryVideoState={photos:[],url:'',working:false};
+const memoryVideoState={photos:[],url:'',working:false,logo:null,ffmpeg:null};
 
 function videoLang(){return (localStorage.getItem('pregnancyPlannerLanguage')==='en')?'en':'cs';}
 function videoText(cs,en){return videoLang()==='en'?en:cs;}
@@ -1063,8 +1063,8 @@ function setMemoryVideoLanguage(){
   set('videoDialogEyebrow','Vzpomínkové video','Memory video');
   set('videoDialogTitle','Vytvořit automatické video ♡','Create automatic video ♡');
   set('videoDialogIntro',
-      'MimiBe použije všechny tvoje uložené vzpomínky, seřadí je podle data a samo přidá jemné prolínačky a pohyb.',
-      'MimiBe will use all your saved memories, sort them by date, and automatically add gentle transitions and motion.');
+      'MimiBe seřadí tvoje vzpomínky podle data a vytvoří z nich jemné video s logem, plynulými prolínačkami a pomalým pohybem.',
+      'MimiBe sorts your memories by date and creates a gentle video with the MimiBe logo, smooth crossfades and slow motion.');
   set('videoPhotoCountLabel','fotek','photos');
   set('videoDurationLabel','délka','duration');
   set('videoMusicLabel','Hudba (volitelně)','Music (optional)');
@@ -1121,6 +1121,53 @@ function loadVideoImage(src){
   });
 }
 
+async function loadMemoryVideoLogo(){
+  if(memoryVideoState.logo)return memoryVideoState.logo;
+  try{memoryVideoState.logo=await loadVideoImage('assets/mimibe-logo.svg');}
+  catch(e){memoryVideoState.logo=null;}
+  return memoryVideoState.logo;
+}
+
+function easeInOutVideo(p){
+  p=Math.max(0,Math.min(1,p));
+  return p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2;
+}
+
+function drawBlurBackdrop(ctx,img,w,h,alpha=1){
+  ctx.save();
+  ctx.globalAlpha=alpha;
+  ctx.filter='blur(28px) brightness(.92) saturate(.82)';
+  coverImage(ctx,img,w,h,1.16,0,0,1);
+  ctx.filter='none';
+  ctx.fillStyle='rgba(255,250,246,.30)';
+  ctx.fillRect(0,0,w,h);
+  ctx.restore();
+}
+
+async function tryFfmpegMp4(blob,status,progressFill,progressText){
+  if(!window.FFmpeg?.createFFmpeg || !window.FFmpeg?.fetchFile)return null;
+  try{
+    status.textContent=videoText('Finalizuji MP4…','Finalising MP4…');
+    progressFill.style.width='96%'; progressText.textContent='96 %';
+    if(!memoryVideoState.ffmpeg){
+      memoryVideoState.ffmpeg=window.FFmpeg.createFFmpeg({
+        log:false,
+        corePath:'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js'
+      });
+    }
+    const ffmpeg=memoryVideoState.ffmpeg;
+    if(!ffmpeg.isLoaded())await ffmpeg.load();
+    ffmpeg.FS('writeFile','mimibe-input.webm',await window.FFmpeg.fetchFile(blob));
+    await ffmpeg.run('-i','mimibe-input.webm','-c:v','libx264','-preset','veryfast','-crf','24','-pix_fmt','yuv420p','-movflags','faststart','-an','mimibe-output.mp4');
+    const out=ffmpeg.FS('readFile','mimibe-output.mp4');
+    try{ffmpeg.FS('unlink','mimibe-input.webm');ffmpeg.FS('unlink','mimibe-output.mp4');}catch(e){}
+    return new Blob([out.buffer],{type:'video/mp4'});
+  }catch(err){
+    console.warn('FFmpeg MP4 fallback:',err);
+    return null;
+  }
+}
+
 function coverImage(ctx,img,w,h,scale=1,panX=0,panY=0,alpha=1){
   const base=Math.max(w/img.width,h/img.height)*scale;
   const dw=img.width*base, dh=img.height*base;
@@ -1137,55 +1184,87 @@ function roundRectVideo(ctx,x,y,w,h,r){
   ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.closePath();
 }
 
-function drawVideoIntro(ctx,w,h,title,subtitle,theme,progress=0){
+function drawVideoIntro(ctx,w,h,title,subtitle,theme,progress=0,logoImg=null){
   const palettes={
     neutral:['#fbf7f2','#d7b58c','#68544a','#fffdf9'],
     pink:['#fff4f7','#e8a0b5','#73555e','#fffafd'],
     blue:['#f2f9fc','#91c9e2','#526974','#fbfdff']
   };
-  const [bg,accent,text,card]=palettes[theme]||palettes.neutral;
+  const [bg,accent,text]=palettes[theme]||palettes.neutral;
+  const p=easeInOutVideo(progress);
   ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);
-  const rg=ctx.createRadialGradient(w*.5,h*.34,20,w*.5,h*.34,w*.5);
-  rg.addColorStop(0,accent+'42');rg.addColorStop(1,accent+'00');ctx.fillStyle=rg;ctx.fillRect(0,0,w,h);
-  ctx.save();ctx.translate(w/2,h*.38);ctx.rotate(-.08);ctx.fillStyle=accent+'22';roundRectVideo(ctx,-w*.28,-w*.21,w*.56,w*.42,w*.06);ctx.fill();ctx.restore();
-  ctx.textAlign='center';ctx.fillStyle=text;
-  ctx.font=`700 ${Math.round(w*.078)}px Georgia, serif`;ctx.fillText(title,w/2,h*.49);
-  if(subtitle){ctx.font=`500 ${Math.round(w*.032)}px Arial, sans-serif`;ctx.fillStyle=text+'b8';ctx.fillText(subtitle,w/2,h*.555);}
-  ctx.font=`600 ${Math.round(w*.027)}px Arial, sans-serif`;ctx.fillStyle=text+'8f';ctx.fillText('MimiBe ♡',w/2,h*.72);
-  // tiny decorative hearts
-  ctx.fillStyle=accent+'aa';ctx.font=`${Math.round(w*.035)}px serif`;ctx.fillText('♡',w*.22,h*.25);ctx.fillText('♡',w*.80,h*.63);
-}
+  const glow=ctx.createRadialGradient(w*.5,h*.42,30,w*.5,h*.42,w*.55);
+  glow.addColorStop(0,accent+'46');glow.addColorStop(.55,accent+'16');glow.addColorStop(1,accent+'00');
+  ctx.fillStyle=glow;ctx.fillRect(0,0,w,h);
 
+  ctx.save();
+  ctx.globalAlpha=Math.min(1,p*1.8);
+  const logoScale=.92+.08*p;
+  if(logoImg){
+    const maxW=w*.52, maxH=h*.16;
+    const r=Math.min(maxW/logoImg.width,maxH/logoImg.height)*logoScale;
+    const lw=logoImg.width*r, lh=logoImg.height*r;
+    ctx.drawImage(logoImg,(w-lw)/2,h*.27-lh/2,lw,lh);
+  }else{
+    ctx.textAlign='center';ctx.fillStyle=accent;
+    ctx.font=`700 ${Math.round(w*.09)}px Georgia, serif`;ctx.fillText('MimiBe',w/2,h*.30);
+  }
+  ctx.restore();
+
+  const textAlpha=Math.max(0,Math.min(1,(p-.18)/.55));
+  ctx.save();ctx.globalAlpha=textAlpha;ctx.textAlign='center';ctx.fillStyle=text;
+  ctx.font=`700 ${Math.round(w*.072)}px Georgia, serif`;ctx.fillText(title,w/2,h*.51);
+  if(subtitle){ctx.font=`500 ${Math.round(w*.032)}px Arial, sans-serif`;ctx.fillStyle=text+'b8';ctx.fillText(subtitle,w/2,h*.565);}
+  ctx.font=`500 ${Math.round(w*.028)}px Arial, sans-serif`;ctx.fillStyle=text+'8f';
+  ctx.fillText(videoText('Vzpomínky na jedno výjimečné období','Memories from a very special time'),w/2,h*.66);
+  ctx.restore();
+
+  ctx.save();ctx.globalAlpha=.35+.45*Math.sin(Math.PI*p);ctx.fillStyle=accent;ctx.font=`${Math.round(w*.038)}px serif`;
+  ctx.fillText('♡',w*.22,h*.20);ctx.fillText('♡',w*.80,h*.68);ctx.fillText('♡',w*.72,h*.17);ctx.restore();
+}
 function drawPhotoFrame(ctx,img,w,h,progress,nextImg=null,transition=0,caption='',dateText='',theme='neutral'){
   const palettes={neutral:['#f8f2eb','#6b584d','#d4ad7c'],pink:['#fff1f5','#73545e','#e99bb3'],blue:['#eef8fc','#526b77','#8fcbe6']};
   const [bg,text,accent]=palettes[theme]||palettes.neutral;
+  const p=easeInOutVideo(progress), t=easeInOutVideo(transition);
   ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);
-  const smooth=p=>{p=Math.max(0,Math.min(1,p));return p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2;};
-  const p=smooth(progress), t=smooth(transition);
-  const margin=42, photoY=72, photoH=h-250, photoW=w-margin*2;
-  ctx.save();
-  ctx.shadowColor='rgba(58,43,35,.14)';ctx.shadowBlur=28;ctx.shadowOffsetY=10;
-  roundRectVideo(ctx,margin,photoY,photoW,photoH,32);ctx.clip();
-  // very gentle Ken Burns movement; crossfade uses eased alpha so there is no visible jump
-  coverImage(ctx,img,photoW,photoH,1+.032*p,-.18+.36*p,.08-.16*p,1-t);
-  if(nextImg && t>0) coverImage(ctx,nextImg,photoW,photoH,1.032-.018*t,.18-.30*t,-.06+.12*t,t);
-  ctx.restore();
-  // clean caption area
-  ctx.textAlign='center';ctx.fillStyle=text;
-  if(caption){ctx.font=`600 ${Math.round(w*.034)}px Arial, sans-serif`;const txt=caption.length>55?caption.slice(0,54)+'…':caption;ctx.fillText(txt,w/2,h-112);}
-  if(dateText){ctx.font=`500 ${Math.round(w*.026)}px Arial, sans-serif`;ctx.fillStyle=text+'9e';ctx.fillText(dateText,w/2,h-72);}
-  ctx.fillStyle=accent;ctx.globalAlpha=.65;ctx.font=`${Math.round(w*.03)}px serif`;ctx.fillText('♡',w/2,h-35);ctx.globalAlpha=1;
-}
 
-function drawVideoOutro(ctx,w,h,theme){
+  // Soft full-frame backdrop prevents ugly empty bars on portrait/landscape photos.
+  drawBlurBackdrop(ctx,img,w,h,1-t);
+  if(nextImg&&t>0)drawBlurBackdrop(ctx,nextImg,w,h,t);
+  ctx.fillStyle='rgba(250,246,241,.28)';ctx.fillRect(0,0,w,h);
+
+  const margin=34, photoY=62, photoH=h-230, photoW=w-margin*2;
+  ctx.save();
+  ctx.shadowColor='rgba(58,43,35,.18)';ctx.shadowBlur=30;ctx.shadowOffsetY=10;
+  roundRectVideo(ctx,margin,photoY,photoW,photoH,34);ctx.clip();
+  ctx.translate(margin,photoY);
+  // True eased crossfade: outgoing and incoming frame are both visible throughout the transition.
+  coverImage(ctx,img,photoW,photoH,1+.045*p,-.22+.44*p,.10-.20*p,1-t);
+  if(nextImg&&t>0)coverImage(ctx,nextImg,photoW,photoH,1.045-.025*t,.20-.38*t,-.08+.16*t,t);
+  ctx.restore();
+
+  // Gentle glass fade behind caption for readability.
+  const grad=ctx.createLinearGradient(0,h-205,0,h);
+  grad.addColorStop(0,'rgba(248,242,235,0)');grad.addColorStop(.42,'rgba(248,242,235,.74)');grad.addColorStop(1,'rgba(248,242,235,.96)');
+  ctx.fillStyle=grad;ctx.fillRect(0,h-205,w,205);
+
+  ctx.textAlign='center';ctx.fillStyle=text;
+  if(caption){ctx.font=`600 ${Math.round(w*.034)}px Arial, sans-serif`;const txt=caption.length>55?caption.slice(0,54)+'…':caption;ctx.fillText(txt,w/2,h-106);}
+  if(dateText){ctx.font=`500 ${Math.round(w*.026)}px Arial, sans-serif`;ctx.fillStyle=text+'9e';ctx.fillText(dateText,w/2,h-68);}
+  ctx.fillStyle=accent;ctx.globalAlpha=.65;ctx.font=`${Math.round(w*.03)}px serif`;ctx.fillText('♡',w/2,h-32);ctx.globalAlpha=1;
+}
+function drawVideoOutro(ctx,w,h,theme,progress=1,logoImg=null){
   const palettes={neutral:['#fbf7f2','#68544a','#d7b58c'],pink:['#fff4f7','#73555e','#e8a0b5'],blue:['#f2f9fc','#526974','#91c9e2']};
   const [bg,text,accent]=palettes[theme]||palettes.neutral;
+  const p=easeInOutVideo(progress);
   ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);ctx.textAlign='center';
-  ctx.fillStyle=accent+'30';ctx.beginPath();ctx.arc(w/2,h*.42,w*.22,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle=text;ctx.font=`700 ${Math.round(w*.07)}px Georgia, serif`;ctx.fillText(videoText('A ještě spousta dalších… ♡','And many more to come… ♡'),w/2,h*.49);
-  ctx.font=`600 ${Math.round(w*.027)}px Arial, sans-serif`;ctx.fillStyle=text+'8f';ctx.fillText('MimiBe',w/2,h*.68);
+  ctx.globalAlpha=Math.min(1,p*1.5);
+  const g=ctx.createRadialGradient(w/2,h*.42,20,w/2,h*.42,w*.34);g.addColorStop(0,accent+'36');g.addColorStop(1,accent+'00');ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+  ctx.fillStyle=text;ctx.font=`700 ${Math.round(w*.064)}px Georgia, serif`;ctx.fillText(videoText('A náš příběh pokračuje… ♡','And our story continues… ♡'),w/2,h*.48);
+  if(logoImg){const mw=w*.30,mh=h*.08,r=Math.min(mw/logoImg.width,mh/logoImg.height);ctx.drawImage(logoImg,(w-logoImg.width*r)/2,h*.62-logoImg.height*r/2,logoImg.width*r,logoImg.height*r);}
+  else{ctx.font=`600 ${Math.round(w*.032)}px Arial, sans-serif`;ctx.fillStyle=accent;ctx.fillText('MimiBe',w/2,h*.64);}
+  ctx.globalAlpha=1;
 }
-
 async function decodeMusicFile(file,audioCtx){
   if(!file)return null;
   const buf=await file.arrayBuffer();
@@ -1232,6 +1311,7 @@ async function generateAutomaticMemoryVideo(){
   try{
     status.textContent=videoText('Načítám fotky…','Loading photos…');
     const imgs=[];
+    const logoImg=await loadMemoryVideoLogo();
     for(let i=0;i<photos.length;i++){
       imgs.push(await loadVideoImage(photos[i].image));
       const q=Math.round((i+1)/photos.length*12);
@@ -1286,7 +1366,7 @@ async function generateAutomaticMemoryVideo(){
       }
     }catch(e){}
 
-    const introMs=2400, photoMs=3800, fadeMs=1350, outroMs=1800;
+    const introMs=3000, photoMs=4600, fadeMs=1800, outroMs=2300;
     const totalMs=introMs+photos.length*photoMs+outroMs;
     const start=performance.now();
 
@@ -1296,7 +1376,7 @@ async function generateAutomaticMemoryVideo(){
       function frame(now){
         const elapsed=now-start;
         if(elapsed<introMs){
-          drawVideoIntro(ctx,W,H,title,period,theme,elapsed/introMs);
+          drawVideoIntro(ctx,W,H,title,period,theme,elapsed/introMs,logoImg);
         }else if(elapsed<introMs+photos.length*photoMs){
           const rel=elapsed-introMs;
           const idx=Math.min(photos.length-1,Math.floor(rel/photoMs));
@@ -1308,7 +1388,7 @@ async function generateAutomaticMemoryVideo(){
           const caption=photos[idx].caption||photoCategoryLabel(photos[idx].type)||videoText('Naše vzpomínka','Our memory');
           drawPhotoFrame(ctx,imgs[idx],W,H,p,idx<photos.length-1?imgs[idx+1]:null,transition,caption,dateText,theme);
         }else{
-          drawVideoOutro(ctx,W,H,theme);
+          drawVideoOutro(ctx,W,H,theme,(elapsed-(introMs+photos.length*photoMs))/outroMs,logoImg);
         }
 
         const pct=Math.min(99,12+Math.round(Math.max(0,elapsed)/totalMs*87));
@@ -1326,10 +1406,18 @@ async function generateAutomaticMemoryVideo(){
     await stopped;
     if(audioCtx){try{await audioCtx.close();}catch(e){}}
 
-    const finalType=rec.mimeType || mime || 'video/webm';
-    const blob=new Blob(chunks,{type:finalType});
+    const recordedType=rec.mimeType || mime || 'video/webm';
+    const recordedBlob=new Blob(chunks,{type:recordedType});
+    let finalBlob=recordedBlob;
+    let finalType=recordedType;
+    // ffmpeg.wasm is used as an optional local finishing step. If a phone cannot load/run it,
+    // MimiBe safely keeps the already-created WebM/MP4 instead of failing the whole video.
+    if(!recordedType.includes('mp4')){
+      const mp4Blob=await tryFfmpegMp4(recordedBlob,status,progressFill,progressText);
+      if(mp4Blob?.size){finalBlob=mp4Blob;finalType='video/mp4';}
+    }
     if(memoryVideoState.url)URL.revokeObjectURL(memoryVideoState.url);
-    memoryVideoState.url=URL.createObjectURL(blob);
+    memoryVideoState.url=URL.createObjectURL(finalBlob);
 
     const isMp4=finalType.includes('mp4');
     const ext=isMp4?'mp4':'webm';
