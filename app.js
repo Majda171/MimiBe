@@ -1067,6 +1067,7 @@ function setMemoryVideoLanguage(){
       'MimiBe sorts your memories by date and creates a gentle video with the MimiBe logo, smooth crossfades and slow motion.');
   set('videoPhotoCountLabel','fotek','photos');
   set('videoDurationLabel','délka','duration');
+  set('videoPickerTitle','Vyber fotky do videa','Choose photos for your video');
   set('videoMusicLabel','Hudba (volitelně)','Music (optional)');
   set('videoMusicHint','Můžeš vybrat vlastní skladbu z telefonu. Když nic nevybereš, video bude bez hudby.',
       'You can choose your own song from your phone. Leave it empty to create the video without music.');
@@ -1074,6 +1075,7 @@ function setMemoryVideoLanguage(){
   set('cancelMemoryVideo','Zrušit','Cancel');
   set('downloadMemoryVideo','Uložit video','Save video');
   set('videoPrivacyText','🔒 Fotky ani hudba neopustí tvoje zařízení.','🔒 Your photos and music never leave your device.');
+  refreshMemoryVideoSelection();
 }
 
 function formatVideoDuration(sec){
