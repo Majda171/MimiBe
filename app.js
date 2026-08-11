@@ -792,6 +792,19 @@ Object.assign(MIMIBE_EN,{
   "Těhotenství • Miminko • Vzpomínky":"Pregnancy • Baby • Memories"
 });
 
+Object.assign(MIMIBE_EN,{
+  "Bonusové video":"Bonus video",
+  "Kluk nebo holka? ♡":"Boy or girl? ♡",
+  "Vytvoř krátké odhalovací video z ultrazvuků a fotek a pošli překvapení rodině.":"Create a short reveal video from ultrasound scans and photos and send the surprise to your family.",
+  "Vytvořit odhalení":"Create reveal",
+  "Co odhalujeme?":"What are we revealing?",
+  "Holčičku":"A girl",
+  "Chlapečka":"A boy",
+  "Úvodní text":"Opening text",
+  "Máme pro vás malé překvapení…":"We have a little surprise for you…",
+  "Na konci se objeví barevné srdce a odhalení. Jméno miminka se přidá automaticky, pokud ho máš vyplněné v profilu.":"A coloured heart and the reveal appear at the end. Your baby's name is added automatically if it is filled in in your profile."
+});
+
 const _i18nTextOriginal=new WeakMap();
 const _i18nAttrOriginal=new WeakMap();
 function currentLang(){return localStorage.getItem('pregnancyPlannerLanguage')||appLanguage||'cs';}
@@ -1070,21 +1083,49 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 
 // MimiBe automatic local memory video creator
-const memoryVideoState={photos:[],selected:new Set(),url:'',working:false,logo:null,ffmpeg:null,musicChoice:'none',previewMusic:null};
+const memoryVideoState={photos:[],selected:new Set(),url:'',working:false,logo:null,ffmpeg:null,musicChoice:'none',previewMusic:null,mode:'memory',revealGender:'',revealIntro:''};
 
 
 const MIMIBE_MUSIC_PRESETS={
-  lullaby:{
-    url:'https://commons.wikimedia.org/wiki/Special:Redirect/file/Lullaby_wound_up_clock_guten_abend_gute_nacht.ogg',
-    source:'Wikimedia Commons · public domain'
+  happy:{
+    url:'assets/music/happy-days-hina.mp3',
+    title:'Happy Days', artist:'Hina', license:'CC0', source:'Chosic',
+    credit:null
   },
-  piano:{
-    url:'https://commons.wikimedia.org/wiki/Special:Redirect/file/La_Espero_-_1_piano_-_2020.ogg',
-    source:'Wikimedia Commons · CC0'
+  moonlight:{
+    url:'assets/music/moonlight-scott-buckley.mp3',
+    title:'Moonlight', artist:'Scott Buckley', license:'CC BY 4.0', source:'scottbuckley.com.au',
+    credit:['Moonlight — Scott Buckley','CC BY 4.0 · scottbuckley.com.au']
   },
-  playful:{
-    url:'https://commons.wikimedia.org/wiki/Special:Redirect/file/Arpeggio_Dreamer.ogg',
-    source:'Wikimedia Commons · CC0'
+  west:{
+    url:'assets/music/west-in-africa-john-bartmann.mp3',
+    title:'West in Africa', artist:'John Bartmann', license:'CC0', source:'johnbartmann.com',
+    credit:null
+  },
+  canon:{
+    url:'assets/music/canon-in-d-major-kevin-macleod.mp3',
+    title:'Canon in D Major', artist:'Kevin MacLeod', license:'CC BY 4.0', source:'incompetech.com',
+    credit:['Canon in D Major — Kevin MacLeod','CC BY 4.0 · incompetech.com']
+  },
+  guitar:{
+    url:'assets/music/guitar-gentle-peritune.mp3',
+    title:'Guitar Gentle', artist:'PeriTune', license:'CC BY 4.0', source:'peritune.com',
+    credit:['Guitar Gentle — PeriTune','CC BY 4.0 · peritune.com']
+  },
+  glow:{
+    url:'assets/music/glow-scott-buckley.mp3',
+    title:'Glow', artist:'Scott Buckley', license:'CC BY 4.0', source:'scottbuckley.com.au',
+    credit:['Glow — Scott Buckley','CC BY 4.0 · scottbuckley.com.au']
+  },
+  along:{
+    url:'assets/music/along-the-way-alex-productions.mp3',
+    title:'Along The Way', artist:'Alex-Productions', license:'CC BY 3.0', source:'onsound.eu',
+    credit:['Along The Way — Alex-Productions','CC BY 3.0 · onsound.eu']
+  },
+  helice:{
+    url:'assets/music/helice-monplaisir.mp3',
+    title:'Hélice', artist:'Monplaisir', license:'CC0', source:'Free Music Archive',
+    credit:null
   }
 };
 
@@ -1092,41 +1133,51 @@ function videoLang(){return (localStorage.getItem('pregnancyPlannerLanguage')===
 function videoText(cs,en){return videoLang()==='en'?en:cs;}
 
 function setMemoryVideoLanguage(){
-  const en=videoLang()==='en';
+  const en=videoLang()==='en', reveal=memoryVideoState.mode==='reveal';
   const set=(id,cs,enText)=>{const el=document.getElementById(id);if(el)el.textContent=en?enText:cs;};
-  set('videoDialogEyebrow','Vzpomínkové video','Memory video');
-  set('videoDialogTitle','Vytvořit automatické video ♡','Create automatic video ♡');
-  set('videoDialogIntro',
-      'Vyber 2–15 fotek. MimiBe z nich vytvoří plynulé MP4 video s jemnými prolínačkami a celými fotografiemi bez ořezu.',
-      'Choose 2–15 photos. MimiBe will create a smooth MP4 video with gentle crossfades and uncropped photos.');
+  if(reveal){
+    set('videoDialogEyebrow','Bonusové video','Bonus video');
+    set('videoDialogTitle','Kluk nebo holka? ♡','Boy or girl? ♡');
+    set('videoDialogIntro','Vyber 1–6 ultrazvuků nebo fotek. MimiBe vytvoří krátké video s napětím, srdíčkovým odhalením a logem MimiBe.','Choose 1–6 ultrasound scans or photos. MimiBe will create a short video with suspense, a heart reveal and the MimiBe logo.');
+    set('videoPickerTitle','Vyber ultrazvuky a fotky','Choose ultrasound scans and photos');
+    set('videoPickerHint','Do odhalovacího videa můžeš vybrat maximálně 6 fotek. Ultrazvuky se zobrazují jako první.','You can select up to 6 photos for the reveal video. Ultrasound scans are shown first.');
+    set('memoryVideoSelectAll','Vybrat 6','Select 6');
+    set('generateMemoryVideo','Vytvořit odhalení','Create reveal');
+  }else{
+    set('videoDialogEyebrow','Vzpomínkové video','Memory video');
+    set('videoDialogTitle','Vytvořit automatické video ♡','Create automatic video ♡');
+    set('videoDialogIntro','Vyber 2–15 fotek. MimiBe z nich vytvoří plynulé MP4 video s jemnými prolínačkami a celými fotografiemi bez ořezu.','Choose 2–15 photos. MimiBe will create a smooth MP4 video with gentle crossfades and uncropped photos.');
+    set('videoPickerTitle','Vyber fotky do videa','Choose photos for your video');
+    set('videoPickerHint','Do jednoho videa můžeš vybrat maximálně 15 fotek.','You can select up to 15 photos for one video.');
+    set('memoryVideoSelectAll','Vybrat 15','Select 15');
+    set('generateMemoryVideo','Vytvořit video','Create video');
+  }
   set('videoPhotoCountLabel','fotek','photos');
   set('videoDurationLabel','délka','duration');
-  set('videoPickerTitle','Vyber fotky do videa','Choose photos for your video');
-  set('videoPickerHint','Do jednoho videa můžeš vybrat maximálně 15 fotek.','You can select up to 15 photos for one video.');
-  set('memoryVideoSelectAll','Vybrat 15','Select 15');
+  set('revealGenderTitle','Co odhalujeme?','What are we revealing?');
+  set('revealGirlLabel','Holčičku','A girl');
+  set('revealBoyLabel','Chlapečka','A boy');
+  set('revealIntroLabel','Úvodní text','Opening text');
+  set('revealSettingsHint','Na konci se objeví barevné srdce a odhalení. Jméno miminka se přidá automaticky, pokud ho máš vyplněné v profilu.','A coloured heart and the reveal appear at the end. Your baby\'s name is added automatically if it is filled in in your profile.');
   set('videoMusicLabel','Hudba (volitelně)','Music (optional)');
-  set('videoMusicHint','Vyber hudbu MimiBe, vlastní skladbu nebo video vytvoř bez hudby.',
-      'Choose MimiBe music, your own song, or create the video without music.');
-  set('musicNoneTitle','Bez hudby','No music');
-  set('musicNoneSub','Jen vzpomínky','Memories only');
-  set('musicLullabyTitle','Ukolébavka','Lullaby');
-  set('musicLullabySub','Jemná a něžná','Soft and gentle');
-  set('musicPianoTitle','Jemné piano','Gentle piano');
-  set('musicPianoSub','Klidné a emotivní','Calm and emotional');
-  set('musicPlayfulTitle','Hravá','Playful');
-  set('musicPlayfulSub','Lehčí a živější','Light and lively');
-  set('musicCustomTitle','Moje hudba','My music');
-  set('musicCustomSub','Vyber skladbu z telefonu','Choose a song from your phone');
+  set('videoMusicHint','Vyber hudbu MimiBe, vlastní skladbu nebo video vytvoř bez hudby.','Choose MimiBe music, your own song, or create the video without music.');
+  set('musicNoneTitle','Bez hudby','No music'); set('musicNoneSub','Jen vzpomínky','Memories only');
+  set('musicHappyTitle','Happy Days','Happy Days'); set('musicHappySub','Hina · radostná','Hina · joyful');
+  set('musicMoonlightTitle','Moonlight','Moonlight'); set('musicMoonlightSub','Scott Buckley · snová','Scott Buckley · dreamy');
+  set('musicWestTitle','West in Africa','West in Africa'); set('musicWestSub','John Bartmann · lehká','John Bartmann · light');
+  set('musicCanonTitle','Canon in D Major','Canon in D Major'); set('musicCanonSub','Kevin MacLeod · slavnostní','Kevin MacLeod · tender classic');
+  set('musicGuitarTitle','Guitar Gentle','Guitar Gentle'); set('musicGuitarSub','PeriTune · jemná kytara','PeriTune · gentle guitar');
+  set('musicGlowTitle','Glow','Glow'); set('musicGlowSub','Scott Buckley · hřejivá','Scott Buckley · warm');
+  set('musicAlongTitle','Along The Way','Along The Way'); set('musicAlongSub','Alex-Productions · pohodová','Alex-Productions · easygoing');
+  set('musicHeliceTitle','Hélice','Hélice'); set('musicHeliceSub','Monplaisir · nostalgická','Monplaisir · nostalgic');
+  set('musicCustomTitle','Moje hudba','My music'); set('musicCustomSub','Vyber skladbu z telefonu','Choose a song from your phone');
   set('musicCustomHint','Vyber zvukový soubor uložený v telefonu.','Choose an audio file saved on your phone.');
-  set('videoMusicLicense','Vestavěná hudba je CC0 / public domain a může být použita i v komerčních videích.',
-      'Built-in music is CC0 / public domain and may also be used in commercial videos.');
-  set('generateMemoryVideo','Vytvořit video','Create video');
-  set('cancelMemoryVideo','Zrušit','Cancel');
-  set('downloadMemoryVideo','Uložit video','Save video');
-  set('videoPrivacyText','🔒 Tvoje fotky neopustí zařízení. Vestavěná hudba se pouze stáhne z veřejného zdroje.','🔒 Your photos never leave your device. Built-in music is only downloaded from its public source.');
+  set('videoMusicLicense','Vestavěné skladby jsou CC0 nebo CC BY. U skladeb CC BY MimiBe automaticky přidá kredit na závěr videa.','Built-in tracks are CC0 or CC BY. For CC BY tracks, MimiBe automatically adds the credit to the end of the video.');
+  set('musicCreditsSummary','Licence a autoři hudby','Music licences and credits');
+  set('cancelMemoryVideo','Zrušit','Cancel'); set('downloadMemoryVideo','Uložit video','Save video');
+  set('videoPrivacyText','🔒 Tvoje fotky se nikam neodesílají. Vestavěná hudba je součástí MimiBe.','🔒 Your photos are not uploaded anywhere. Built-in music is included with MimiBe.');
   refreshMemoryVideoSelection();
 }
-
 function formatVideoDuration(sec){
   const s=Math.max(0,Math.round(sec));
   const m=Math.floor(s/60), r=s%60;
@@ -1135,32 +1186,42 @@ function formatVideoDuration(sec){
 
 
 const MEMORY_VIDEO_MAX_PHOTOS=15;
-function selectedMemoryVideoPhotos(){
-  return memoryVideoState.photos.filter(p=>memoryVideoState.selected.has(String(p.id)));
+const REVEAL_VIDEO_MAX_PHOTOS=6;
+function videoSelectionLimits(){return memoryVideoState.mode==='reveal'?{min:1,max:REVEAL_VIDEO_MAX_PHOTOS}:{min:2,max:MEMORY_VIDEO_MAX_PHOTOS};}
+function selectedMemoryVideoPhotos(){return memoryVideoState.photos.filter(p=>memoryVideoState.selected.has(String(p.id)));}
+function refreshRevealGenderChoice(){
+  document.querySelectorAll('[data-reveal-gender]').forEach(btn=>{
+    const active=btn.dataset.revealGender===memoryVideoState.revealGender;
+    btn.classList.toggle('active',active);btn.setAttribute('aria-pressed',active?'true':'false');
+  });
 }
 function refreshMemoryVideoSelection(){
-  const chosen=selectedMemoryVideoPhotos(), total=memoryVideoState.photos.length;
+  const chosen=selectedMemoryVideoPhotos(), total=memoryVideoState.photos.length, lim=videoSelectionLimits();
   document.querySelectorAll('.memory-video-thumb').forEach(btn=>btn.setAttribute('aria-pressed',memoryVideoState.selected.has(btn.dataset.id)?'true':'false'));
   const c=document.getElementById('videoPickerCount');
-  if(c)c.textContent=videoText(`Vybráno ${chosen.length} / ${Math.min(MEMORY_VIDEO_MAX_PHOTOS,total)}`,`Selected ${chosen.length} / ${Math.min(MEMORY_VIDEO_MAX_PHOTOS,total)}`);
+  if(c)c.textContent=videoText(`Vybráno ${chosen.length} / ${Math.min(lim.max,total)}`,`Selected ${chosen.length} / ${Math.min(lim.max,total)}`);
   const gen=document.getElementById('generateMemoryVideo');
-  if(gen)gen.disabled=chosen.length<2;
-  document.getElementById('videoPhotoCount').textContent=String(chosen.length);
-  document.getElementById('videoDurationEstimate').textContent=chosen.length>=2?formatVideoDuration(3.2+chosen.length*4.6+2.5):'—';
+  const genderOk=memoryVideoState.mode!=='reveal' || ['girl','boy'].includes(memoryVideoState.revealGender);
+  if(gen)gen.disabled=chosen.length<lim.min || !genderOk;
+  const pc=document.getElementById('videoPhotoCount'); if(pc)pc.textContent=String(chosen.length);
+  const de=document.getElementById('videoDurationEstimate');
+  if(de)de.textContent=chosen.length>=lim.min?formatVideoDuration(memoryVideoState.mode==='reveal'?(10.7+chosen.length*1.9):(3.2+chosen.length*4.6+2.5)):'—';
+  refreshRevealGenderChoice();
 }
 function renderMemoryVideoPicker(){
   const grid=document.getElementById('memoryVideoPhotoGrid'); if(!grid)return;
-  grid.innerHTML='';
+  const lim=videoSelectionLimits(); grid.innerHTML='';
   memoryVideoState.photos.forEach((p,i)=>{
     const b=document.createElement('button'); b.type='button'; b.className='memory-video-thumb'; b.dataset.id=String(p.id);
     const img=document.createElement('img'); img.src=p.image; img.alt=videoText(`Fotka ${i+1}`,`Photo ${i+1}`);
     const tick=document.createElement('span'); tick.className='memory-video-thumb-check'; tick.textContent='✓';
+    if(memoryVideoState.mode==='reveal' && p.type==='ultrasound')b.classList.add('is-ultrasound');
     b.append(img,tick);
     b.addEventListener('click',()=>{
       const id=String(p.id);
       if(memoryVideoState.selected.has(id)) memoryVideoState.selected.delete(id);
-      else if(memoryVideoState.selected.size<MEMORY_VIDEO_MAX_PHOTOS) memoryVideoState.selected.add(id);
-      else alert(videoText('Do jednoho videa můžeš vybrat maximálně 15 fotek.','You can select up to 15 photos for one video.'));
+      else if(memoryVideoState.selected.size<lim.max) memoryVideoState.selected.add(id);
+      else alert(memoryVideoState.mode==='reveal'?videoText('Do odhalovacího videa můžeš vybrat maximálně 6 fotek.','You can select up to 6 photos for the reveal video.'):videoText('Do jednoho videa můžeš vybrat maximálně 15 fotek.','You can select up to 15 photos for one video.'));
       refreshMemoryVideoSelection();
     });
     grid.appendChild(b);
@@ -1168,34 +1229,31 @@ function renderMemoryVideoPicker(){
   refreshMemoryVideoSelection();
 }
 
-async function openMemoryVideoDialog(){
+async function openMemoryVideoDialog(mode='memory'){
   if(!photoDB.db) await photoDB.open();
   let photos=await photoDB.all();
   photos=photos.filter(p=>p.image).sort((a,b)=>(a.date||'').localeCompare(b.date||'') || a.id-b.id);
-  if(!photos.length){
-    alert(videoText('Nejdřív přidej alespoň jednu fotku do Vzpomínek.','Please add at least one photo to Memories first.'));
-    return;
+  if(!photos.length){alert(videoText('Nejdřív přidej alespoň jednu fotku do Vzpomínek.','Please add at least one photo to Memories first.'));return;}
+  memoryVideoState.mode=mode==='reveal'?'reveal':'memory';
+  if(memoryVideoState.mode==='reveal'){
+    photos=photos.sort((a,b)=>Number(b.type==='ultrasound')-Number(a.type==='ultrasound') || (a.date||'').localeCompare(b.date||'') || a.id-b.id);
   }
   memoryVideoState.photos=photos;
-  memoryVideoState.selected=new Set(photos.slice(0,MEMORY_VIDEO_MAX_PHOTOS).map(p=>String(p.id)));
-  setMemoryVideoLanguage();
-  renderMemoryVideoPicker();
+  const lim=videoSelectionLimits();
+  const preferred=memoryVideoState.mode==='reveal'?photos.filter(p=>p.type==='ultrasound').slice(0,4):photos.slice(0,lim.max);
+  const initial=(memoryVideoState.mode==='reveal' && preferred.length?preferred:photos.slice(0,Math.min(lim.max,4)));
+  memoryVideoState.selected=new Set(initial.map(p=>String(p.id)));
+  memoryVideoState.revealGender=memoryVideoState.mode==='reveal'&&['girl','boy'].includes(data?.babyGender)?data.babyGender:'';
+  const revealSettings=document.getElementById('genderRevealSettings'); if(revealSettings)revealSettings.classList.toggle('hidden',memoryVideoState.mode!=='reveal');
+  const introInput=document.getElementById('genderRevealIntroText');
+  if(introInput)introInput.value=videoText('Máme pro vás malé překvapení…','We have a little surprise for you…');
+  setMemoryVideoLanguage(); renderMemoryVideoPicker(); refreshRevealGenderChoice();
 
-  const dlg=document.getElementById('memoryVideoDialog');
-  const preview=document.getElementById('memoryVideoPreview');
-  const download=document.getElementById('downloadMemoryVideo');
-  const progress=document.getElementById('memoryVideoProgress');
+  const dlg=document.getElementById('memoryVideoDialog'),preview=document.getElementById('memoryVideoPreview'),download=document.getElementById('downloadMemoryVideo'),progress=document.getElementById('memoryVideoProgress');
   if(memoryVideoState.url){URL.revokeObjectURL(memoryVideoState.url);memoryVideoState.url='';}
-  preview.classList.add('hidden'); preview.removeAttribute('src');
-  download.classList.add('hidden');
-  progress.classList.add('hidden');
-  document.getElementById('memoryVideoMusic').value='';
-  memoryVideoState.musicChoice='none';
-  stopMemoryMusicPreview();
-  refreshMemoryMusicChoice();
-  dlg.showModal();
+  preview.classList.add('hidden'); preview.removeAttribute('src'); download.classList.add('hidden'); progress.classList.add('hidden');
+  document.getElementById('memoryVideoMusic').value=''; memoryVideoState.musicChoice='none'; stopMemoryMusicPreview(); refreshMemoryMusicChoice(); dlg.showModal();
 }
-
 function closeMemoryVideoDialog(){
   if(memoryVideoState.working)return;
   stopMemoryMusicPreview();
@@ -1490,11 +1548,19 @@ function drawMemoryIntroClean(ctx,w,h,progress,logoImg,firstImg,babyImg,babyName
   }
   ctx.globalAlpha=baseAlpha;
 }
-function drawMemoryOutroClean(ctx,w,h,progress,logoImg){
+function drawMemoryOutroClean(ctx,w,h,progress,logoImg,musicCredit=null){
   const p=videoSmoothstep(progress),baseAlpha=ctx.globalAlpha;ctx.fillStyle='#F7F3ED';ctx.fillRect(0,0,w,h);
   ctx.textAlign='center';ctx.globalAlpha=baseAlpha*Math.min(1,p*1.7);
   if(logoImg){const maxW=w*.42,maxH=h*.14,r=Math.min(maxW/logoImg.width,maxH/logoImg.height);const lw=logoImg.width*r,lh=logoImg.height*r;ctx.drawImage(logoImg,(w-lw)/2,h*.42-lh/2,lw,lh);}
-  ctx.fillStyle='#68544a';ctx.font=`600 ${Math.round(w*.043)}px Arial, sans-serif`;ctx.fillText(videoText('A náš příběh pokračuje… ♡','And our story continues… ♡'),w/2,h*.58);ctx.globalAlpha=baseAlpha;
+  ctx.fillStyle='#68544a';ctx.font=`600 ${Math.round(w*.043)}px Arial, sans-serif`;
+  ctx.fillText(videoText('A náš příběh pokračuje… ♡','And our story continues… ♡'),w/2,h*.58);
+  if(musicCredit && musicCredit.length){
+    ctx.fillStyle='#8b7b72';
+    ctx.font=`500 ${Math.round(w*.024)}px Arial, sans-serif`;
+    ctx.fillText(videoText('Hudba: ','Music: ')+musicCredit[0],w/2,h*.84);
+    if(musicCredit[1])ctx.fillText(musicCredit[1],w/2,h*.875);
+  }
+  ctx.globalAlpha=baseAlpha;
 }
 function drawPhotoTimeline(ctx,imgs,w,h,local,photoSec,fadeSec){
   const step=photoSec-fadeSec;
@@ -1560,6 +1626,12 @@ async function previewMemoryMusic(key,control){
     console.warn('MimiBe music preview failed',e);
     alert(videoText('Ukázku hudby se nepodařilo přehrát.','The music preview could not be played.'));
   }
+}
+
+function selectedMemoryMusicPreset(){
+  const choice=memoryVideoState.musicChoice||'none';
+  if(choice==='none' || choice==='custom')return null;
+  return MIMIBE_MUSIC_PRESETS[choice]||null;
 }
 
 async function selectedMemoryMusicBlob(){
@@ -1663,6 +1735,9 @@ async function generateAutomaticMemoryVideo(){
     await output.start();
     if(audioSource&&audioBuffer){await audioSource.add(audioBuffer);audioSource.close();}
 
+    const selectedPreset=selectedMemoryMusicPreset();
+    const musicCredit=selectedPreset?.credit||null;
+
     const firstDate=photos[0]?.date,lastDate=photos[photos.length-1]?.date;
     let period='';
     try{
@@ -1689,9 +1764,9 @@ async function generateAutomaticMemoryVideo(){
         const x=videoSmoothstep((t-outroStart)/OUTRO_FADE);
         ctx.clearRect(0,0,W,H);
         ctx.save();ctx.globalAlpha=1-x;drawPhotoTimeline(ctx,bitmaps,W,H,t-photoStart,PHOTO,FADE);ctx.restore();
-        ctx.save();ctx.globalAlpha=x;drawMemoryOutroClean(ctx,W,H,(t-outroStart)/OUTRO,logoImg);ctx.restore();
+        ctx.save();ctx.globalAlpha=x;drawMemoryOutroClean(ctx,W,H,(t-outroStart)/OUTRO,logoImg,musicCredit);ctx.restore();
       }else{
-        drawMemoryOutroClean(ctx,W,H,(t-outroStart)/OUTRO,logoImg);
+        drawMemoryOutroClean(ctx,W,H,(t-outroStart)/OUTRO,logoImg,musicCredit);
       }
 
       await videoSource.add(t,FRAME,{keyFrame:frame===0 || frame%(FPS*2)===0});
@@ -1717,14 +1792,83 @@ async function generateAutomaticMemoryVideo(){
   }
 }
 
+
+function drawRevealHeart(ctx,x,y,size,color,alpha=1){
+  ctx.save();ctx.translate(x,y);ctx.scale(size/100,size/100);ctx.globalAlpha*=alpha;ctx.fillStyle=color;ctx.beginPath();
+  ctx.moveTo(0,30);ctx.bezierCurveTo(-58,-7,-48,-58,-16,-58);ctx.bezierCurveTo(7,-58,18,-39,18,-27);ctx.bezierCurveTo(18,-39,29,-58,52,-58);ctx.bezierCurveTo(84,-58,94,-7,36,30);ctx.lineTo(18,46);ctx.lineTo(0,62);ctx.lineTo(-18,46);ctx.lineTo(-36,30);ctx.closePath();ctx.fill();ctx.restore();
+}
+function drawRevealLogo(ctx,w,h,logoImg,y=.11,scale=.34){
+  if(!logoImg)return;const maxW=w*scale,maxH=h*.10,r=Math.min(maxW/logoImg.width,maxH/logoImg.height);const lw=logoImg.width*r,lh=logoImg.height*r;ctx.drawImage(logoImg,(w-lw)/2,h*y-lh/2,lw,lh);
+}
+function drawRevealWrappedText(ctx,text,x,y,maxWidth,lineHeight,maxLines=3){
+  const words=String(text||'').trim().split(/\s+/);let line='',lines=[];
+  for(const word of words){const test=line?line+' '+word:word;if(ctx.measureText(test).width>maxWidth&&line){lines.push(line);line=word;if(lines.length>=maxLines-1)break;}else line=test;}
+  if(line&&lines.length<maxLines)lines.push(line);
+  const top=y-(lines.length-1)*lineHeight/2;lines.forEach((ln,i)=>ctx.fillText(ln,x,top+i*lineHeight));
+}
+function drawRevealIntro(ctx,w,h,p,logoImg,text){
+  ctx.fillStyle='#F7F3ED';ctx.fillRect(0,0,w,h);drawRevealLogo(ctx,w,h,logoImg,.14,.38);
+  const a=videoSmoothstep(Math.min(1,p*1.6));ctx.save();ctx.globalAlpha=a;ctx.textAlign='center';ctx.fillStyle='#65534A';ctx.font=`600 ${Math.round(w*.052)}px Arial, sans-serif`;drawRevealWrappedText(ctx,text||videoText('Máme pro vás malé překvapení…','We have a little surprise for you…'),w/2,h*.50,w*.78,Math.round(w*.066),3);drawRevealHeart(ctx,w/2,h*.68,w*.08,'#D9B6A5',.78+.18*Math.sin(p*Math.PI*3));ctx.restore();
+}
+function drawRevealPhotoScene(ctx,img,w,h,progress=0,alpha=1){
+  drawMemoryPhotoScene(ctx,img,w,h,progress,alpha);ctx.save();ctx.globalAlpha=.52*alpha;drawRevealHeart(ctx,w*.88,h*.10,w*.037,'#FFF7F0',1);ctx.restore();
+}
+function drawRevealPhotoTimeline(ctx,imgs,w,h,t,photoDur,fadeDur){
+  const step=photoDur-fadeDur;let j=Math.floor(t/step);j=Math.max(0,Math.min(imgs.length-1,j));const local=t-j*step;
+  if(j>0 && local<fadeDur){const blend=videoSmoothstep(local/fadeDur);drawRevealPhotoScene(ctx,imgs[j-1],w,h,1,1-blend);drawRevealPhotoScene(ctx,imgs[j],w,h,local/photoDur,blend);}else drawRevealPhotoScene(ctx,imgs[j],w,h,Math.min(1,local/photoDur),1);
+}
+function drawRevealQuestion(ctx,w,h,p,logoImg){
+  ctx.fillStyle='#F7F3ED';ctx.fillRect(0,0,w,h);ctx.save();ctx.globalAlpha=videoSmoothstep(Math.min(1,p*1.5));drawRevealLogo(ctx,w,h,logoImg,.14,.31);ctx.textAlign='center';ctx.fillStyle='#65534A';ctx.font=`700 ${Math.round(w*.07)}px Arial, sans-serif`;ctx.fillText(videoText('Tipnete si?','Can you guess?'),w/2,h*.50);drawRevealHeart(ctx,w*.41,h*.66,w*.065,'#E7A8B9',.82);drawRevealHeart(ctx,w*.59,h*.66,w*.065,'#9ABAD8',.82);ctx.restore();
+}
+function drawRevealFinal(ctx,w,h,p,gender,logoImg,babyName,musicCredit){
+  const isGirl=gender==='girl', tint=isGirl?'#F4DCE4':'#DCEBF4', accent=isGirl?'#D887A2':'#74A8CD';
+  ctx.fillStyle='#F7F3ED';ctx.fillRect(0,0,w,h);const hp=videoSmoothstep(Math.min(1,p/.30));drawRevealHeart(ctx,w/2,h*.52,w*(.06+1.55*hp),accent,1);
+  if(p>.22){ctx.save();ctx.globalAlpha=videoSmoothstep(Math.min(1,(p-.22)/.18));ctx.fillStyle=tint;ctx.fillRect(0,0,w,h);ctx.restore();}
+  if(p>.30){const a=videoSmoothstep(Math.min(1,(p-.30)/.24));ctx.save();ctx.globalAlpha=a;drawRevealLogo(ctx,w,h,logoImg,.14,.34);ctx.textAlign='center';ctx.fillStyle=accent;ctx.font=`800 ${Math.round(w*.073)}px Arial, sans-serif`;ctx.fillText(isGirl?videoText('BUDE TO HOLČIČKA ♡','IT’S A GIRL ♡'):videoText('BUDE TO CHLAPEČEK ♡','IT’S A BOY ♡'),w/2,h*.49);if((babyName||'').trim()){ctx.fillStyle='#65534A';ctx.font=`600 ${Math.round(w*.052)}px Arial, sans-serif`;ctx.fillText((babyName||'').trim(),w/2,h*.58);}for(let i=0;i<5;i++){const yy=h*(.69+i*.035),xx=w*(.28+i*.11);drawRevealHeart(ctx,xx,yy,w*(.018+(i%2)*.007),accent,.28+.08*i);}if(musicCredit&&p>.70){ctx.fillStyle='#796B64';ctx.font=`500 ${Math.round(w*.020)}px Arial, sans-serif`;ctx.fillText(videoText('Hudba: ','Music: ')+musicCredit[0],w/2,h*.89);if(musicCredit[1])ctx.fillText(musicCredit[1],w/2,h*.915);}ctx.restore();}
+}
+async function generateGenderRevealVideo(){
+  if(memoryVideoState.working)return;const photos=selectedMemoryVideoPhotos();
+  if(photos.length<1||photos.length>REVEAL_VIDEO_MAX_PHOTOS||!['girl','boy'].includes(memoryVideoState.revealGender))return;
+  if(!window.VideoEncoder){alert(videoText('Tento telefon nepodporuje moderní kódování videa (WebCodecs).','This phone does not support modern video encoding (WebCodecs).'));return;}
+  memoryVideoState.working=true;
+  const generate=document.getElementById('generateMemoryVideo'),cancel=document.getElementById('cancelMemoryVideo'),progressBox=document.getElementById('memoryVideoProgress'),progressFill=document.getElementById('memoryVideoProgressFill'),progressText=document.getElementById('memoryVideoProgressText'),status=document.getElementById('memoryVideoStatus'),preview=document.getElementById('memoryVideoPreview'),download=document.getElementById('downloadMemoryVideo');
+  generate.disabled=true;cancel.disabled=true;progressBox.classList.remove('hidden');preview.classList.add('hidden');download.classList.add('hidden');const bitmaps=[];
+  try{
+    status.textContent=videoText('Připravuji odhalení…','Preparing the reveal…');progressFill.style.width='2%';progressText.textContent='2 %';
+    const MB=await loadMediabunny();const {Output,Mp4OutputFormat,BufferTarget,CanvasSource,AudioBufferSource,Quality}=MB;const logoImg=await loadMemoryVideoLogo();
+    for(let i=0;i<photos.length;i++){bitmaps.push(await dataUrlToBitmap(photos[i].image));const pct=3+Math.round((i+1)/photos.length*8);progressFill.style.width=pct+'%';progressText.textContent=pct+' %';}
+    const W=720,H=1280,FPS=30,FRAME=1/FPS,INTRO=3.0,INTRO_FADE=.7,PHOTO=2.8,FADE=.9,QUESTION=2.7,QFADE=.6,REVEAL=5.2;
+    const photoStart=INTRO-INTRO_FADE,step=PHOTO-FADE,photoEnd=photoStart+(bitmaps.length-1)*step+PHOTO,questionStart=photoEnd-QFADE,revealStart=questionStart+QUESTION-QFADE,totalSec=revealStart+REVEAL,totalFrames=Math.ceil(totalSec*FPS);
+    const canvas=typeof OffscreenCanvas!=='undefined'?new OffscreenCanvas(W,H):Object.assign(document.createElement('canvas'),{width:W,height:H});canvas.width=W;canvas.height=H;const ctx=canvas.getContext('2d',{alpha:false});
+    const output=new Output({format:new Mp4OutputFormat(),target:new BufferTarget()});const videoSource=new CanvasSource(canvas,{codec:'avc',quality:new Quality({bitrate:4_000_000})});output.addVideoTrack(videoSource,{frameRate:FPS});
+    let audioSource=null,audioBuffer=null;if(memoryVideoState.musicChoice!=='none'){try{status.textContent=videoText('Připravuji hudbu…','Preparing music…');const musicBlob=await selectedMemoryMusicBlob();if(musicBlob){audioBuffer=await makeLoopedAudioBuffer(musicBlob,totalSec);if(audioBuffer){audioSource=new AudioBufferSource({codec:'aac',quality:new Quality({bitrate:128_000})});output.addAudioTrack(audioSource);}}}catch(e){console.warn('MimiBe reveal audio skipped',e);audioSource=null;audioBuffer=null;}}
+    await output.start();if(audioSource&&audioBuffer){await audioSource.add(audioBuffer);audioSource.close();}
+    const selectedPreset=selectedMemoryMusicPreset(),musicCredit=selectedPreset?.credit||null,customIntro=(document.getElementById('genderRevealIntroText')?.value||'').trim()||videoText('Máme pro vás malé překvapení…','We have a little surprise for you…');
+    status.textContent=videoText('Vytvářím překvapení…','Creating the surprise…');
+    for(let frame=0;frame<totalFrames;frame++){
+      const t=frame/FPS;
+      if(t<photoStart)drawRevealIntro(ctx,W,H,t/INTRO,logoImg,customIntro);
+      else if(t<INTRO){const x=videoSmoothstep((t-photoStart)/INTRO_FADE);ctx.clearRect(0,0,W,H);ctx.save();ctx.globalAlpha=1-x;drawRevealIntro(ctx,W,H,t/INTRO,logoImg,customIntro);ctx.restore();ctx.save();ctx.globalAlpha=x;drawRevealPhotoTimeline(ctx,bitmaps,W,H,0,PHOTO,FADE);ctx.restore();}
+      else if(t<questionStart)drawRevealPhotoTimeline(ctx,bitmaps,W,H,t-photoStart,PHOTO,FADE);
+      else if(t<photoEnd){const x=videoSmoothstep((t-questionStart)/QFADE);ctx.clearRect(0,0,W,H);ctx.save();ctx.globalAlpha=1-x;drawRevealPhotoTimeline(ctx,bitmaps,W,H,t-photoStart,PHOTO,FADE);ctx.restore();ctx.save();ctx.globalAlpha=x;drawRevealQuestion(ctx,W,H,0,logoImg);ctx.restore();}
+      else if(t<revealStart)drawRevealQuestion(ctx,W,H,(t-questionStart)/QUESTION,logoImg);
+      else if(t<revealStart+QFADE){const x=videoSmoothstep((t-revealStart)/QFADE);ctx.clearRect(0,0,W,H);ctx.save();ctx.globalAlpha=1-x;drawRevealQuestion(ctx,W,H,1,logoImg);ctx.restore();ctx.save();ctx.globalAlpha=x;drawRevealFinal(ctx,W,H,0,memoryVideoState.revealGender,logoImg,data?.babyName||'',musicCredit);ctx.restore();}
+      else drawRevealFinal(ctx,W,H,(t-revealStart)/REVEAL,memoryVideoState.revealGender,logoImg,data?.babyName||'',musicCredit);
+      await videoSource.add(t,FRAME,{keyFrame:frame===0||frame%(FPS*2)===0});const pct=12+Math.round((frame+1)/totalFrames*84);progressFill.style.width=pct+'%';progressText.textContent=pct+' %';if(frame%12===0)await new Promise(r=>setTimeout(r,0));
+    }
+    videoSource.close();status.textContent=videoText('Dokončuji MP4…','Finalising MP4…');progressFill.style.width='97%';progressText.textContent='97 %';await output.finalize();
+    const blob=new Blob([output.target.buffer],{type:'video/mp4'});if(memoryVideoState.url)URL.revokeObjectURL(memoryVideoState.url);memoryVideoState.url=URL.createObjectURL(blob);preview.src=memoryVideoState.url;preview.classList.remove('hidden');download.href=memoryVideoState.url;download.download='MimiBe-kluk-nebo-holka.mp4';download.classList.remove('hidden');progressFill.style.width='100%';progressText.textContent='100 %';status.textContent=videoText('Hotovo ♡ Překvapení je připravené.','Done ♡ Your surprise is ready.');
+  }catch(err){console.error('MimiBe reveal video error',err);status.textContent=videoText('Odhalovací video se nepodařilo vytvořit.','The reveal video could not be created.');alert(videoText('Odhalovací video se nepodařilo vytvořit. Zkus méně fotek.','The reveal video could not be created. Try fewer photos.'));}
+  finally{bitmaps.forEach(closeVideoBitmap);memoryVideoState.working=false;generate.disabled=false;cancel.disabled=false;refreshMemoryVideoSelection();}
+}
+
 document.addEventListener('click',e=>{
-  if(e.target.closest('#createVideoFuture'))openMemoryVideoDialog();
+  if(e.target.closest('#createVideoFuture'))openMemoryVideoDialog('memory');
+  if(e.target.closest('#createGenderReveal'))openMemoryVideoDialog('reveal');
   if(e.target.closest('#closeMemoryVideo,#cancelMemoryVideo'))closeMemoryVideoDialog();
-  if(e.target.closest('#generateMemoryVideo'))generateAutomaticMemoryVideo();
-  if(e.target.closest('#memoryVideoSelectAll')){
-    memoryVideoState.selected=new Set(memoryVideoState.photos.slice(0,MEMORY_VIDEO_MAX_PHOTOS).map(p=>String(p.id)));
-    refreshMemoryVideoSelection();
-  }
+  if(e.target.closest('#generateMemoryVideo')){if(memoryVideoState.mode==='reveal')generateGenderRevealVideo();else generateAutomaticMemoryVideo();}
+  if(e.target.closest('#memoryVideoSelectAll')){const lim=videoSelectionLimits();memoryVideoState.selected=new Set(memoryVideoState.photos.slice(0,lim.max).map(p=>String(p.id)));refreshMemoryVideoSelection();}
+  const revealGender=e.target.closest('[data-reveal-gender]');if(revealGender){memoryVideoState.revealGender=revealGender.dataset.revealGender;refreshMemoryVideoSelection();return;}
   const previewBtn=e.target.closest('[data-preview-music]');
   if(previewBtn){
     e.preventDefault();e.stopPropagation();

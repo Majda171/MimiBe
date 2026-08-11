@@ -1705,3 +1705,22 @@ body[data-theme="blue"] .nav-item.active{
 .memory-custom-music input{width:100%}
 .memory-custom-music small{display:block;margin-top:5px;color:var(--muted);font-size:10.5px}
 .memory-music-license{display:block;margin-top:10px;color:var(--muted);font-size:9.5px;line-height:1.35}
+
+.memory-music-credits{margin-top:9px;font-size:10px;color:var(--muted)}
+.memory-music-credits summary{cursor:pointer;font-weight:700;color:#7b6a61}
+.memory-music-credits div{padding-top:7px;line-height:1.35}
+.memory-music-credits p{margin:4px 0}
+
+
+/* Bonus gender reveal video */
+.gender-reveal-card{background:linear-gradient(135deg,#fff8f8,#f2f7fb)}
+.gender-reveal-card::after{content:'♡ ♡';letter-spacing:5px}
+.reveal-maker-icon{font-size:27px;font-weight:700;color:var(--theme-accent,var(--accent));background:linear-gradient(135deg,#f7dce5,#dcebf5)!important}
+.gender-reveal-settings{margin:12px 0 4px;padding:14px;border:1px solid var(--line,#eadfd6);border-radius:18px;background:linear-gradient(135deg,rgba(255,246,248,.86),rgba(244,249,252,.90))}
+.gender-reveal-settings>strong{display:block;font-size:14px;margin-bottom:10px}
+.gender-reveal-choice{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.gender-reveal-option{display:flex;align-items:center;justify-content:center;gap:7px;padding:11px 8px;border:1px solid var(--line,#eadfd6);border-radius:14px;background:#fff;color:#65534a;font:inherit}
+.gender-reveal-option span{font-size:20px}.gender-reveal-option.girl.active{border-color:#df9cb2;background:#fbeaf0;color:#a85e77}.gender-reveal-option.boy.active{border-color:#8bb8d8;background:#eaf4fa;color:#527fa0}
+.gender-reveal-text{display:grid;gap:5px;margin-top:11px}.gender-reveal-text span{font-size:11px;font-weight:700;color:#74635a}.gender-reveal-text input{width:100%;box-sizing:border-box;padding:10px 11px;border:1px solid var(--line,#eadfd6);border-radius:12px;background:#fff;font:inherit;color:inherit}
+.gender-reveal-settings>small{display:block;margin-top:8px;font-size:10px;line-height:1.4;color:var(--muted)}
+.memory-video-thumb.is-ultrasound::after{content:'US';position:absolute;left:5px;bottom:5px;padding:2px 5px;border-radius:7px;background:rgba(255,255,255,.88);font-size:8px;font-weight:800;color:#77655c}

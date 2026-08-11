@@ -184,6 +184,16 @@
         </div>
         <button class="primary" id="createVideoFuture" type="button">Vytvořit video</button>
       </section>
+
+      <section class="card memory-maker video-maker-card gender-reveal-card">
+        <div class="video-maker-icon reveal-maker-icon" aria-hidden="true">♡</div>
+        <div>
+          <small>Bonusové video</small>
+          <h3>Kluk nebo holka? ♡</h3>
+          <p>Vytvoř krátké odhalovací video z ultrazvuků a fotek a pošli překvapení rodině.</p>
+        </div>
+        <button class="primary" id="createGenderReveal" type="button">Vytvořit odhalení</button>
+      </section>
       
       <dialog id="memoryVideoDialog" class="memory-video-dialog">
         <div class="memory-video-shell">
@@ -203,6 +213,19 @@
             <div><strong id="videoPhotoCount">0</strong><span id="videoPhotoCountLabel">fotek</span></div>
             <div><strong id="videoDurationEstimate">—</strong><span id="videoDurationLabel">délka</span></div>
           </div>
+
+          <section id="genderRevealSettings" class="gender-reveal-settings hidden">
+            <strong id="revealGenderTitle">Co odhalujeme?</strong>
+            <div class="gender-reveal-choice" role="group" aria-label="Pohlaví miminka pro odhalovací video">
+              <button type="button" class="gender-reveal-option girl" data-reveal-gender="girl" aria-pressed="false"><span>♡</span><b id="revealGirlLabel">Holčičku</b></button>
+              <button type="button" class="gender-reveal-option boy" data-reveal-gender="boy" aria-pressed="false"><span>♡</span><b id="revealBoyLabel">Chlapečka</b></button>
+            </div>
+            <label class="gender-reveal-text">
+              <span id="revealIntroLabel">Úvodní text</span>
+              <input id="genderRevealIntroText" type="text" maxlength="80" value="Máme pro vás malé překvapení…">
+            </label>
+            <small id="revealSettingsHint">Na konci se objeví barevné srdce a odhalení. Jméno miminka se přidá automaticky, pokud ho máš vyplněné v profilu.</small>
+          </section>
 
           <div class="memory-video-picker">
             <div class="memory-video-picker-head">
@@ -228,22 +251,52 @@
                 <span class="memory-music-copy"><b id="musicNoneTitle">Bez hudby</b><small id="musicNoneSub">Jen vzpomínky</small></span>
               </button>
 
-              <button type="button" class="memory-music-option" data-music-choice="lullaby" aria-pressed="false">
+              <button type="button" class="memory-music-option" data-music-choice="happy" aria-pressed="false">
                 <span class="memory-music-icon">♫</span>
-                <span class="memory-music-copy"><b id="musicLullabyTitle">Ukolébavka</b><small id="musicLullabySub">Jemná a něžná</small></span>
-                <span class="memory-music-preview" data-preview-music="lullaby" aria-label="Přehrát ukázku">▶</span>
+                <span class="memory-music-copy"><b id="musicHappyTitle">Happy Days</b><small id="musicHappySub">Hina · radostná</small></span>
+                <span class="memory-music-preview" data-preview-music="happy" aria-label="Přehrát ukázku">▶</span>
               </button>
 
-              <button type="button" class="memory-music-option" data-music-choice="piano" aria-pressed="false">
+              <button type="button" class="memory-music-option" data-music-choice="moonlight" aria-pressed="false">
+                <span class="memory-music-icon">☾</span>
+                <span class="memory-music-copy"><b id="musicMoonlightTitle">Moonlight</b><small id="musicMoonlightSub">Scott Buckley · snová</small></span>
+                <span class="memory-music-preview" data-preview-music="moonlight" aria-label="Přehrát ukázku">▶</span>
+              </button>
+
+              <button type="button" class="memory-music-option" data-music-choice="west" aria-pressed="false">
                 <span class="memory-music-icon">♪</span>
-                <span class="memory-music-copy"><b id="musicPianoTitle">Jemné piano</b><small id="musicPianoSub">Klidné a emotivní</small></span>
-                <span class="memory-music-preview" data-preview-music="piano" aria-label="Přehrát ukázku">▶</span>
+                <span class="memory-music-copy"><b id="musicWestTitle">West in Africa</b><small id="musicWestSub">John Bartmann · lehká</small></span>
+                <span class="memory-music-preview" data-preview-music="west" aria-label="Přehrát ukázku">▶</span>
               </button>
 
-              <button type="button" class="memory-music-option" data-music-choice="playful" aria-pressed="false">
+              <button type="button" class="memory-music-option" data-music-choice="canon" aria-pressed="false">
+                <span class="memory-music-icon">♬</span>
+                <span class="memory-music-copy"><b id="musicCanonTitle">Canon in D Major</b><small id="musicCanonSub">Kevin MacLeod · slavnostní</small></span>
+                <span class="memory-music-preview" data-preview-music="canon" aria-label="Přehrát ukázku">▶</span>
+              </button>
+
+              <button type="button" class="memory-music-option" data-music-choice="guitar" aria-pressed="false">
+                <span class="memory-music-icon">♫</span>
+                <span class="memory-music-copy"><b id="musicGuitarTitle">Guitar Gentle</b><small id="musicGuitarSub">PeriTune · jemná kytara</small></span>
+                <span class="memory-music-preview" data-preview-music="guitar" aria-label="Přehrát ukázku">▶</span>
+              </button>
+
+              <button type="button" class="memory-music-option" data-music-choice="glow" aria-pressed="false">
                 <span class="memory-music-icon">✦</span>
-                <span class="memory-music-copy"><b id="musicPlayfulTitle">Hravá</b><small id="musicPlayfulSub">Lehčí a živější</small></span>
-                <span class="memory-music-preview" data-preview-music="playful" aria-label="Přehrát ukázku">▶</span>
+                <span class="memory-music-copy"><b id="musicGlowTitle">Glow</b><small id="musicGlowSub">Scott Buckley · hřejivá</small></span>
+                <span class="memory-music-preview" data-preview-music="glow" aria-label="Přehrát ukázku">▶</span>
+              </button>
+
+              <button type="button" class="memory-music-option" data-music-choice="along" aria-pressed="false">
+                <span class="memory-music-icon">♪</span>
+                <span class="memory-music-copy"><b id="musicAlongTitle">Along The Way</b><small id="musicAlongSub">Alex-Productions · pohodová</small></span>
+                <span class="memory-music-preview" data-preview-music="along" aria-label="Přehrát ukázku">▶</span>
+              </button>
+
+              <button type="button" class="memory-music-option" data-music-choice="helice" aria-pressed="false">
+                <span class="memory-music-icon">♡</span>
+                <span class="memory-music-copy"><b id="musicHeliceTitle">Hélice</b><small id="musicHeliceSub">Monplaisir · nostalgická</small></span>
+                <span class="memory-music-preview" data-preview-music="helice" aria-label="Přehrát ukázku">▶</span>
               </button>
 
               <button type="button" class="memory-music-option" data-music-choice="custom" aria-pressed="false">
@@ -258,7 +311,20 @@
             </div>
 
             <audio id="memoryMusicPreviewAudio" preload="none" playsinline></audio>
-            <small class="memory-music-license" id="videoMusicLicense">Vestavěná hudba je CC0 / public domain a může být použita i v komerčních videích.</small>
+            <small class="memory-music-license" id="videoMusicLicense">Vestavěné skladby jsou CC0 nebo CC BY. U skladeb CC BY MimiBe automaticky přidá kredit na závěr videa.</small>
+            <details class="memory-music-credits">
+              <summary id="musicCreditsSummary">Licence a autoři hudby</summary>
+              <div>
+                <p><b>Happy Days — Hina</b> · CC0 / Public Domain</p>
+                <p><b>Moonlight — Scott Buckley</b> · CC BY 4.0 · scottbuckley.com.au</p>
+                <p><b>West in Africa — John Bartmann</b> · CC0 / Public Domain</p>
+                <p><b>Canon in D Major — Kevin MacLeod</b> · CC BY 4.0 · incompetech.com</p>
+                <p><b>Guitar Gentle — PeriTune</b> · CC BY 4.0 · peritune.com</p>
+                <p><b>Glow — Scott Buckley</b> · CC BY 4.0 · scottbuckley.com.au</p>
+                <p><b>Along The Way — Alex-Productions</b> · CC BY 3.0 · onsound.eu</p>
+                <p><b>Hélice — Monplaisir</b> · CC0 / Public Domain</p>
+              </div>
+            </details>
           </section>
 
           <div class="memory-video-progress hidden" id="memoryVideoProgress">
