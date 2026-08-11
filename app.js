@@ -7,7 +7,7 @@ const store = {
 };
 
 const defaults = {
-  momName: '', dueDate: '', babyName: '', theme: 'neutral', events: [], notes: [],
+  momName: '', dueDate: '', babyName: '', babyGender: 'neutral', theme: 'neutral', events: [], notes: [],
   equipment: ['Postýlka','Kočárek','Autosedačka','Plenky','Body','Overaly'],
   hospital: ['Doklady','Přezůvky','Noční košile','Hygiena','Oblečení pro miminko'],
   equipmentDone: [], hospitalDone: [], customChecklists: [], equipmentBudget: null, equipmentPrices: [], currency: 'CZK'
@@ -19,6 +19,7 @@ if(!Array.isArray(data.equipmentPrices)) data.equipmentPrices=[];
 data.equipmentPrices=data.equipment.map((_,i)=>{ const v=Number(data.equipmentPrices[i]); return Number.isFinite(v)&&v>=0?v:null; });
 { const b=Number(data.equipmentBudget); data.equipmentBudget=Number.isFinite(b)&&b>0?b:null; }
 if(!['CZK','EUR','USD','GBP'].includes(data.currency)) data.currency='CZK';
+if(!['girl','boy','neutral'].includes(data.babyGender)) data.babyGender='neutral';
 data.customChecklists=data.customChecklists.filter(c=>c&&typeof c==='object').map(c=>({id:String(c.id||('c'+Date.now().toString(36)+Math.random().toString(36).slice(2,6))),name:String(c.name||'Checklist'),items:Array.isArray(c.items)?c.items:[],done:Array.isArray(c.done)?c.done:[]}));
 let currentChecklist = 'equipment';
 
@@ -275,9 +276,25 @@ document.querySelectorAll('.currency-option').forEach(btn=>{
 });
 refreshCurrencyOptions();
 
+
+function refreshGenderChoice(){
+  document.querySelectorAll('[data-gender-choice]').forEach(btn=>{
+    const active=btn.dataset.genderChoice===(data.babyGender||'neutral');
+    btn.classList.toggle('active',active);
+    btn.setAttribute('aria-pressed',active?'true':'false');
+  });
+}
+document.querySelectorAll('[data-gender-choice]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    data.babyGender=['girl','boy','neutral'].includes(btn.dataset.genderChoice)?btn.dataset.genderChoice:'neutral';
+    refreshGenderChoice();
+  });
+});
+
 $('#saveSettings')?.addEventListener('click',()=>{
   data.momName=$('#momName')?.value.trim()||'';
   data.babyName=$('#babyNameInput').value.trim();
+  data.babyGender=['girl','boy','neutral'].includes(data.babyGender)?data.babyGender:'neutral';
   data.dueDate=$('#dueDateInput').value;
   data.theme=$('#themeSelect').value;
   persist();applyTheme();renderMomName();renderBabyName();updatePregnancy();updateStandalonePregnancyProgress();nav('home');
@@ -461,6 +478,7 @@ $$('[data-photo-filter]').forEach(btn=>btn.addEventListener('click',()=>{current
 async function init(){
   applyTheme();
   $('#babyNameInput').value=data.babyName||'';
+  refreshGenderChoice();
   $('#dueDateInput').value=data.dueDate;
   $('#themeSelect').value=data.theme;
   $('#photoDateInput').value=new Date().toISOString().slice(0,10);
@@ -1052,7 +1070,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 
 // MimiBe automatic local memory video creator
-const memoryVideoState={photos:[],url:'',working:false,logo:null,ffmpeg:null};
+const memoryVideoState={photos:[],selected:new Set(),url:'',working:false,logo:null,ffmpeg:null};
 
 function videoLang(){return (localStorage.getItem('pregnancyPlannerLanguage')==='en')?'en':'cs';}
 function videoText(cs,en){return videoLang()==='en'?en:cs;}
@@ -1068,6 +1086,8 @@ function setMemoryVideoLanguage(){
   set('videoPhotoCountLabel','fotek','photos');
   set('videoDurationLabel','délka','duration');
   set('videoPickerTitle','Vyber fotky do videa','Choose photos for your video');
+  set('videoPickerHint','Do jednoho videa můžeš vybrat maximálně 15 fotek.','You can select up to 15 photos for one video.');
+  set('memoryVideoSelectAll','Vybrat 15','Select 15');
   set('videoMusicLabel','Hudba (volitelně)','Music (optional)');
   set('videoMusicHint','Můžeš vybrat vlastní skladbu z telefonu. Když nic nevybereš, video bude bez hudby.',
       'You can choose your own song from your phone. Leave it empty to create the video without music.');
@@ -1084,6 +1104,41 @@ function formatVideoDuration(sec){
   return m?`${m}:${String(r).padStart(2,'0')}`:`0:${String(r).padStart(2,'0')}`;
 }
 
+
+const MEMORY_VIDEO_MAX_PHOTOS=15;
+function selectedMemoryVideoPhotos(){
+  return memoryVideoState.photos.filter(p=>memoryVideoState.selected.has(String(p.id)));
+}
+function refreshMemoryVideoSelection(){
+  const chosen=selectedMemoryVideoPhotos(), total=memoryVideoState.photos.length;
+  document.querySelectorAll('.memory-video-thumb').forEach(btn=>btn.setAttribute('aria-pressed',memoryVideoState.selected.has(btn.dataset.id)?'true':'false'));
+  const c=document.getElementById('videoPickerCount');
+  if(c)c.textContent=videoText(`Vybráno ${chosen.length} / ${Math.min(MEMORY_VIDEO_MAX_PHOTOS,total)}`,`Selected ${chosen.length} / ${Math.min(MEMORY_VIDEO_MAX_PHOTOS,total)}`);
+  const gen=document.getElementById('generateMemoryVideo');
+  if(gen)gen.disabled=chosen.length<2;
+  document.getElementById('videoPhotoCount').textContent=String(chosen.length);
+  document.getElementById('videoDurationEstimate').textContent=chosen.length>=2?formatVideoDuration(3.2+chosen.length*4.6+2.5):'—';
+}
+function renderMemoryVideoPicker(){
+  const grid=document.getElementById('memoryVideoPhotoGrid'); if(!grid)return;
+  grid.innerHTML='';
+  memoryVideoState.photos.forEach((p,i)=>{
+    const b=document.createElement('button'); b.type='button'; b.className='memory-video-thumb'; b.dataset.id=String(p.id);
+    const img=document.createElement('img'); img.src=p.image; img.alt=videoText(`Fotka ${i+1}`,`Photo ${i+1}`);
+    const tick=document.createElement('span'); tick.className='memory-video-thumb-check'; tick.textContent='✓';
+    b.append(img,tick);
+    b.addEventListener('click',()=>{
+      const id=String(p.id);
+      if(memoryVideoState.selected.has(id)) memoryVideoState.selected.delete(id);
+      else if(memoryVideoState.selected.size<MEMORY_VIDEO_MAX_PHOTOS) memoryVideoState.selected.add(id);
+      else alert(videoText('Do jednoho videa můžeš vybrat maximálně 15 fotek.','You can select up to 15 photos for one video.'));
+      refreshMemoryVideoSelection();
+    });
+    grid.appendChild(b);
+  });
+  refreshMemoryVideoSelection();
+}
+
 async function openMemoryVideoDialog(){
   if(!photoDB.db) await photoDB.open();
   let photos=await photoDB.all();
@@ -1093,9 +1148,9 @@ async function openMemoryVideoDialog(){
     return;
   }
   memoryVideoState.photos=photos;
-  document.getElementById('videoPhotoCount').textContent=String(photos.length);
-  document.getElementById('videoDurationEstimate').textContent=formatVideoDuration(2.4+photos.length*3.8+1.8);
+  memoryVideoState.selected=new Set(photos.slice(0,MEMORY_VIDEO_MAX_PHOTOS).map(p=>String(p.id)));
   setMemoryVideoLanguage();
+  renderMemoryVideoPicker();
 
   const dlg=document.getElementById('memoryVideoDialog');
   const preview=document.getElementById('memoryVideoPreview');
@@ -1123,9 +1178,16 @@ function loadVideoImage(src){
   });
 }
 
+
+async function loadMemoryVideoBaby(){
+  const gender=data?.babyGender||'neutral';
+  const src=gender==='girl'?'assets/baby-pink.webp':gender==='boy'?'assets/baby-blue.webp':'assets/baby-neutral.webp';
+  try{return await loadVideoImage(src);}catch(e){return null;}
+}
+
 async function loadMemoryVideoLogo(){
   if(memoryVideoState.logo)return memoryVideoState.logo;
-  try{memoryVideoState.logo=await loadVideoImage('assets/mimibe-logo.svg');}
+  try{memoryVideoState.logo=await loadVideoImage('assets/madlaart-logo.png');}
   catch(e){memoryVideoState.logo=null;}
   return memoryVideoState.logo;
 }
@@ -1186,44 +1248,77 @@ function roundRectVideo(ctx,x,y,w,h,r){
   ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.closePath();
 }
 
-function drawVideoIntro(ctx,w,h,title,subtitle,theme,progress=0,logoImg=null){
+function drawVideoIntro(ctx,w,h,babyName,period,theme,progress=0,logoImg=null,firstImg=null,babyImg=null){
   const palettes={
-    neutral:['#fbf7f2','#d7b58c','#68544a','#fffdf9'],
-    pink:['#fff4f7','#e8a0b5','#73555e','#fffafd'],
-    blue:['#f2f9fc','#91c9e2','#526974','#fbfdff']
+    neutral:{bg:'#f7f3ed',name:'#cda06c',soft:'#ead8c4'},
+    pink:{bg:'#fff5f7',name:'#f3a6ad',soft:'#f5d7dc'},
+    blue:{bg:'#f3f9fc',name:'#91bdd9',soft:'#d9eaf4'}
   };
-  const [bg,accent,text]=palettes[theme]||palettes.neutral;
+  const gender=data?.babyGender||'neutral';
+  const pal=gender==='girl'?palettes.pink:gender==='boy'?palettes.blue:palettes.neutral;
   const p=easeInOutVideo(progress);
-  ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);
-  const glow=ctx.createRadialGradient(w*.5,h*.42,30,w*.5,h*.42,w*.55);
-  glow.addColorStop(0,accent+'46');glow.addColorStop(.55,accent+'16');glow.addColorStop(1,accent+'00');
-  ctx.fillStyle=glow;ctx.fillRect(0,0,w,h);
+  ctx.fillStyle=pal.bg;ctx.fillRect(0,0,w,h);
 
+  // Soft MimiBe logo at top.
   ctx.save();
-  ctx.globalAlpha=Math.min(1,p*1.8);
-  const logoScale=.92+.08*p;
+  ctx.globalAlpha=Math.min(1,p*2);
   if(logoImg){
-    const maxW=w*.52, maxH=h*.16;
-    const r=Math.min(maxW/logoImg.width,maxH/logoImg.height)*logoScale;
-    const lw=logoImg.width*r, lh=logoImg.height*r;
-    ctx.drawImage(logoImg,(w-lw)/2,h*.27-lh/2,lw,lh);
+    const maxW=w*.36,maxH=h*.095;
+    const r=Math.min(maxW/logoImg.width,maxH/logoImg.height);
+    const lw=logoImg.width*r,lh=logoImg.height*r;
+    ctx.drawImage(logoImg,w*.60-lw/2,h*.105-lh/2,lw,lh);
   }else{
-    ctx.textAlign='center';ctx.fillStyle=accent;
-    ctx.font=`700 ${Math.round(w*.09)}px Georgia, serif`;ctx.fillText('MimiBe',w/2,h*.30);
+    ctx.textAlign='center';ctx.fillStyle='#cda06c';ctx.font=`700 ${Math.round(w*.075)}px Georgia,serif`;ctx.fillText('MimiBe',w*.73,h*.12);
   }
   ctx.restore();
 
-  const textAlpha=Math.max(0,Math.min(1,(p-.18)/.55));
-  ctx.save();ctx.globalAlpha=textAlpha;ctx.textAlign='center';ctx.fillStyle=text;
-  ctx.font=`700 ${Math.round(w*.072)}px Georgia, serif`;ctx.fillText(title,w/2,h*.51);
-  if(subtitle){ctx.font=`500 ${Math.round(w*.032)}px Arial, sans-serif`;ctx.fillStyle=text+'b8';ctx.fillText(subtitle,w/2,h*.565);}
-  ctx.font=`500 ${Math.round(w*.028)}px Arial, sans-serif`;ctx.fillStyle=text+'8f';
-  ctx.fillText(videoText('Vzpomínky na jedno výjimečné období','Memories from a very special time'),w/2,h*.66);
+  // Polaroid-like first photo, intentionally tilted.
+  const photoX=w*.12, photoY=h*.245, photoW=w*.77, photoH=h*.39;
+  ctx.save();
+  ctx.translate(photoX+photoW/2,photoY+photoH/2);
+  ctx.rotate(-6*Math.PI/180);
+  const scale=.965+.035*p;ctx.scale(scale,scale);
+  ctx.shadowColor='rgba(75,55,45,.16)';ctx.shadowBlur=24;ctx.shadowOffsetY=10;
+  ctx.fillStyle='#fffdf9';roundRectVideo(ctx,-photoW/2-10,-photoH/2-10,photoW+20,photoH+20,18);ctx.fill();
+  ctx.shadowColor='transparent';
+  if(firstImg){
+    ctx.save();roundRectVideo(ctx,-photoW/2,-photoH/2,photoW,photoH,12);ctx.clip();
+    coverImage(ctx,firstImg,photoW,photoH,1.02,0,0,1);
+    ctx.restore();
+  }else{
+    ctx.fillStyle=pal.soft;roundRectVideo(ctx,-photoW/2,-photoH/2,photoW,photoH,12);ctx.fill();
+  }
   ctx.restore();
 
-  ctx.save();ctx.globalAlpha=.35+.45*Math.sin(Math.PI*p);ctx.fillStyle=accent;ctx.font=`${Math.round(w*.038)}px serif`;
-  ctx.fillText('♡',w*.22,h*.20);ctx.fillText('♡',w*.80,h*.68);ctx.fillText('♡',w*.72,h*.17);ctx.restore();
+  // Baby name over lower photo edge.
+  const displayName=(babyName||videoText('Naše miminko','Our baby')).trim();
+  ctx.save();ctx.textAlign='center';ctx.globalAlpha=Math.min(1,Math.max(0,(p-.12)*1.7));
+  ctx.fillStyle=pal.name;
+  let fontSize=Math.round(w*.086);
+  ctx.font=`800 ${fontSize}px Arial, sans-serif`;
+  while(ctx.measureText(displayName.toUpperCase()).width>w*.78 && fontSize>34){fontSize-=2;ctx.font=`800 ${fontSize}px Arial, sans-serif`;}
+  ctx.fillText(displayName.toUpperCase(),w/2,h*.635);
+  ctx.restore();
+
+  // Date range.
+  if(period){
+    ctx.save();ctx.textAlign='center';ctx.fillStyle='#181818';
+    ctx.font=`500 ${Math.round(w*.052)}px Arial, sans-serif`;
+    ctx.fillText(period,w/2,h*.705);
+    ctx.restore();
+  }
+
+  // Bottom baby illustration.
+  if(babyImg){
+    ctx.save();ctx.globalAlpha=Math.min(1,p*1.4);
+    const maxW=w*.30,maxH=h*.22;
+    const r=Math.min(maxW/babyImg.width,maxH/babyImg.height);
+    const bw=babyImg.width*r,bh=babyImg.height*r;
+    ctx.drawImage(babyImg,(w-bw)/2,h*.815-bh/2,bw,bh);
+    ctx.restore();
+  }
 }
+
 function drawPhotoFrame(ctx,img,w,h,progress,nextImg=null,transition=0,caption='',dateText='',theme='neutral'){
   const palettes={neutral:['#f8f2eb','#6b584d','#d4ad7c'],pink:['#fff1f5','#73545e','#e99bb3'],blue:['#eef8fc','#526b77','#8fcbe6']};
   const [bg,text,accent]=palettes[theme]||palettes.neutral;
@@ -1286,8 +1381,8 @@ function chooseRecordingMime(){
 
 async function generateAutomaticMemoryVideo(){
   if(memoryVideoState.working)return;
-  const photos=memoryVideoState.photos;
-  if(!photos.length)return;
+  const photos=selectedMemoryVideoPhotos();
+  if(photos.length<2)return;
 
   if(!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream){
     alert(videoText(
@@ -1314,6 +1409,7 @@ async function generateAutomaticMemoryVideo(){
     status.textContent=videoText('Načítám fotky…','Loading photos…');
     const imgs=[];
     const logoImg=await loadMemoryVideoLogo();
+    const babyImg=await loadMemoryVideoBaby();
     for(let i=0;i<photos.length;i++){
       imgs.push(await loadVideoImage(photos[i].image));
       const q=Math.round((i+1)/photos.length*12);
@@ -1356,19 +1452,25 @@ async function generateAutomaticMemoryVideo(){
     }
 
     const theme=data?.theme||'neutral';
-    const title=videoText('Naše vzpomínky ♡','Our memories ♡');
+    const title=videoText('Náš malý velký příběh ♡','Our little big story ♡');
     const firstDate=photos[0]?.date, lastDate=photos[photos.length-1]?.date;
     let period='';
     try{
       if(firstDate&&lastDate){
-        const locale=videoLang()==='en'?'en-GB':'cs-CZ';
-        const a=new Intl.DateTimeFormat(locale,{month:'long',year:'numeric'}).format(new Date(firstDate+'T00:00:00'));
-        const b=new Intl.DateTimeFormat(locale,{month:'long',year:'numeric'}).format(new Date(lastDate+'T00:00:00'));
-        period=a===b?a:`${a} – ${b}`;
+        const a=new Date(firstDate+'T00:00:00'), b=new Date(lastDate+'T00:00:00');
+        if(firstDate===lastDate){
+          period=videoLang()==='en'
+            ? new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'numeric',year:'numeric'}).format(a)
+            : `${a.getDate()}.${a.getMonth()+1}.${a.getFullYear()}`;
+        }else{
+          period=videoLang()==='en'
+            ? `${new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'numeric'}).format(a)} – ${new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'numeric',year:'numeric'}).format(b)}`
+            : `${a.getDate()}.${a.getMonth()+1}. – ${b.getDate()}.${b.getMonth()+1}. ${b.getFullYear()}`;
+        }
       }
     }catch(e){}
 
-    const introMs=3000, photoMs=4600, fadeMs=1800, outroMs=2300;
+    const introMs=4200, photoMs=5000, fadeMs=2200, outroMs=3000;
     const totalMs=introMs+photos.length*photoMs+outroMs;
     const start=performance.now();
 
@@ -1378,7 +1480,7 @@ async function generateAutomaticMemoryVideo(){
       function frame(now){
         const elapsed=now-start;
         if(elapsed<introMs){
-          drawVideoIntro(ctx,W,H,title,period,theme,elapsed/introMs,logoImg);
+          drawVideoIntro(ctx,W,H,data?.babyName||'',period,theme,elapsed/introMs,logoImg,imgs[0],babyImg);
         }else if(elapsed<introMs+photos.length*photoMs){
           const rel=elapsed-introMs;
           const idx=Math.min(photos.length-1,Math.floor(rel/photoMs));
@@ -1448,4 +1550,8 @@ document.addEventListener('click',e=>{
   if(e.target.closest('#createVideoFuture'))openMemoryVideoDialog();
   if(e.target.closest('#closeMemoryVideo,#cancelMemoryVideo'))closeMemoryVideoDialog();
   if(e.target.closest('#generateMemoryVideo'))generateAutomaticMemoryVideo();
+  if(e.target.closest('#memoryVideoSelectAll')){
+    memoryVideoState.selected=new Set(memoryVideoState.photos.slice(0,MEMORY_VIDEO_MAX_PHOTOS).map(p=>String(p.id)));
+    refreshMemoryVideoSelection();
+  }
 });

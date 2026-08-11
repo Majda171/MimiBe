@@ -204,6 +204,16 @@
             <div><strong id="videoDurationEstimate">—</strong><span id="videoDurationLabel">délka</span></div>
           </div>
 
+          <div class="memory-video-picker">
+            <div class="memory-video-picker-head">
+              <strong id="videoPickerTitle">Vyber fotky do videa</strong>
+              <button type="button" id="memoryVideoSelectAll" class="memory-video-select-all">Vybrat 15</button>
+            </div>
+            <small id="videoPickerCount">Vybráno 0 / 15</small>
+            <div id="memoryVideoPhotoGrid" class="memory-video-photo-grid"></div>
+            <small id="videoPickerHint">Do jednoho videa můžeš vybrat maximálně 15 fotek.</small>
+          </div>
+
           <label class="memory-music-field">
             <span id="videoMusicLabel">Hudba (volitelně)</span>
             <input id="memoryVideoMusic" type="file" accept="audio/*">
@@ -260,6 +270,14 @@
         <label>Jméno miminka</label>
         <input id="babyNameInput" placeholder="Např. Eliška" />
         <small class="helper">Můžeš nechat prázdné a doplnit později.</small>
+
+        <label class="gender-picker-label" data-gender-label>Pohlaví miminka</label>
+        <div class="gender-choice-grid" role="group" aria-label="Pohlaví miminka">
+          <button type="button" class="gender-choice-card" data-gender-choice="girl"><span>♡</span><b>Holčička</b></button>
+          <button type="button" class="gender-choice-card" data-gender-choice="boy"><span>♡</span><b>Chlapeček</b></button>
+          <button type="button" class="gender-choice-card" data-gender-choice="neutral"><span>♡</span><b>Nechci uvádět</b></button>
+        </div>
+
         <label>Termín porodu</label>
         <input id="dueDateInput" type="date" />
         

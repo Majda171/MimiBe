@@ -1630,3 +1630,22 @@ body[data-theme="blue"] .nav-item.active{
   background:var(--accent,#c7a177);
   color:white;opacity:1;
 }
+
+.memory-video-picker{margin:14px 0;padding:14px;border:1px solid var(--line,#eadfd6);border-radius:18px;background:rgba(255,255,255,.55)}
+.memory-video-picker-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:4px}
+.memory-video-picker-head strong{font-size:14px}
+.memory-video-select-all{border:0;background:transparent;color:var(--accent,#b98d64);font:inherit;font-size:12px;font-weight:700;padding:5px}
+.memory-video-picker>small{display:block;opacity:.68;font-size:11px;margin:4px 0 9px}
+.memory-video-photo-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;max-height:230px;overflow:auto}
+.memory-video-thumb{position:relative;aspect-ratio:1;padding:0;border:2px solid transparent;border-radius:12px;overflow:hidden;background:#eee}
+.memory-video-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.memory-video-thumb-check{position:absolute;right:5px;top:5px;width:21px;height:21px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.9);font-size:12px;font-weight:800;opacity:.65}
+.memory-video-thumb[aria-pressed="true"]{border-color:var(--accent,#c7a177)}
+.memory-video-thumb[aria-pressed="true"] .memory-video-thumb-check{background:var(--accent,#c7a177);color:#fff;opacity:1}
+
+.gender-picker-label{display:block;margin-top:12px}
+.gender-choice-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:7px 0 14px}
+.gender-choice-card{min-height:62px;border:1px solid var(--line,#eadfd6);border-radius:16px;background:#fffdfb;color:inherit;font:inherit;padding:8px 5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+.gender-choice-card span{font-size:18px;color:var(--accent,#caa070)}
+.gender-choice-card b{font-size:11px;font-weight:600}
+.gender-choice-card.active{border-color:var(--accent,#caa070);background:var(--accent-soft,#f5eadf);box-shadow:0 0 0 1px color-mix(in srgb,var(--accent,#caa070) 18%,transparent)}
