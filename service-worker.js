@@ -1,4 +1,4 @@
-const CACHE='mimibe-20260812-pagespeed-seo-v1';
+const CACHE='mimibe-20260812-a11y-v1';
 const APP_SHELL=["./", "./index.html", "./style.css", "./app.js", "./manifest.webmanifest", "./assets/baby-neutral.webp", "./assets/baby-pink.webp", "./assets/baby-blue.webp", "./assets/mimibe-logo.svg", "./assets/reveal-hand.webp", "./assets/reveal-feet.webp", "./pwa-icons/icon-192.png", "./pwa-icons/icon-512.png"];
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(APP_SHELL)));

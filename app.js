@@ -887,7 +887,7 @@ function updateStandalonePregnancyProgress(){
     const m=(source?.textContent||'').match(/(\d+)\s*%/); if(m)pct=parseInt(m[1],10);
   }
   pct=Math.max(0,Math.min(100,Number.isFinite(pct)?pct:0));
-  fill.style.width=pct+'%'; label.textContent=pct+' %'; bar.setAttribute('aria-valuenow',String(pct));
+  fill.style.width=pct+'%'; label.textContent=pct+' %'; bar.setAttribute('aria-valuenow',String(pct)); bar.setAttribute('aria-label',i18nMsg('Průběh těhotenství','Pregnancy progress'));
 }
 document.addEventListener('DOMContentLoaded',()=>{
   setTimeout(updateStandalonePregnancyProgress,180);
@@ -1517,7 +1517,7 @@ function stopMemoryMusicPreview(){
   const audio=document.getElementById('memoryMusicPreviewAudio');
   if(audio){audio.pause();audio.removeAttribute('src');audio.load();}
   memoryVideoState.previewMusic=null;
-  document.querySelectorAll('[data-preview-music]').forEach(el=>el.textContent='▶');
+  document.querySelectorAll('[data-preview-music]').forEach(el=>{el.textContent='▶';el.setAttribute('aria-label',videoText('Přehrát ukázku','Play preview'));el.setAttribute('aria-pressed','false');});
 }
 
 async function previewMemoryMusic(key,control){
@@ -1539,6 +1539,8 @@ async function previewMemoryMusic(key,control){
     await audio.play();
     memoryVideoState.previewMusic=key;
     control.textContent='❚❚';
+    control.setAttribute('aria-label',videoText('Pozastavit ukázku','Pause preview'));
+    control.setAttribute('aria-pressed','true');
     audio.onended=()=>stopMemoryMusicPreview();
   }catch(e){
     console.warn('MimiBe music preview failed',e);

@@ -1,4 +1,4 @@
-:root{--bg:#f7f3ed;--card:#fffdf9;--text:#272626;--muted:#7e7972;--accent:#b59a79;--accent2:#ded2c4;--soft:#efe8df;--line:#e9e1d8;--success:#93a88b}
+:root{--bg:#f7f3ed;--card:#fffdf9;--text:#272626;--muted:#706a64;--accent:#b59a79;--accent-strong:#80674d;--accent2:#ded2c4;--soft:#efe8df;--line:#e9e1d8;--success:#6f8768}
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}body{display:flex;justify-content:center}.app-shell{width:100%;max-width:460px;min-height:100vh;padding:env(safe-area-inset-top) 18px calc(92px + env(safe-area-inset-bottom));background:linear-gradient(180deg,#fbf8f4 0%,var(--bg) 100%)}.topbar{display:flex;justify-content:space-between;align-items:center;padding:22px 4px 18px}.hello{font-family:Georgia,serif;font-style:italic;font-size:29px}.subhello{margin-top:5px;color:#444}.icon-btn,.back,.chevron,.text-btn{border:0;background:none;color:inherit}.icon-btn{width:44px;height:44px;border-radius:50%;background:var(--soft);font-size:20px}.card{background:rgba(255,255,255,.72);border:1px solid rgba(183,166,147,.25);box-shadow:0 8px 28px rgba(95,77,58,.06);border-radius:24px}.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:14px;padding:28px 22px;align-items:center}.eyebrow{color:#66625e}.hero h1{font-size:34px;margin:8px 0}.pill{display:inline-block;background:var(--soft);color:var(--accent);font-weight:700;padding:8px 14px;border-radius:99px}.divider{height:1px;background:var(--line);margin:24px 0 18px}.days-left{font-size:28px;font-weight:800;margin-top:5px}.due-date{margin-top:6px;font-size:14px;color:#5f5a55}.progress-ring{width:150px;aspect-ratio:1;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:conic-gradient(var(--accent) 0deg,var(--accent) 0deg,var(--soft) 0deg);position:relative;margin:auto}.progress-ring:after{content:"";position:absolute;inset:11px;border-radius:50%;background:var(--card)}.baby-mark,.progress-value{z-index:1}.baby-mark{font-size:30px;color:var(--accent)}.progress-value{display:flex;flex-direction:column;align-items:center}.progress-value strong{font-size:20px}.progress-value span{font-size:12px;color:var(--muted)}.next-event{margin-top:18px;padding:18px;display:grid;grid-template-columns:72px 1fr 34px;align-items:center;gap:14px}.date-box{background:var(--soft);border-radius:18px;text-align:center;padding:12px 6px}.date-box strong{display:block;font-size:28px}.date-box span{font-size:12px;color:var(--muted)}.event-copy{display:flex;flex-direction:column;gap:4px}.event-copy strong{font-size:17px}.event-copy span{font-size:14px;color:var(--muted)}.chevron{font-size:38px}.section-head{display:flex;justify-content:space-between;align-items:center;margin:24px 2px 12px}.section-head h2{font-size:18px;margin:0}.text-btn{color:var(--muted)}.quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.quick{border:0;background:transparent;font-size:12px;color:var(--text);display:flex;flex-direction:column;align-items:center;gap:8px}.quick span{width:58px;height:58px;border-radius:18px;background:var(--card);border:1px solid var(--line);display:grid;place-items:center;font-size:24px;color:var(--accent)}.checklist-card,.note-preview{margin-top:20px;padding:4px 18px 18px}.check-row{display:flex;gap:14px;align-items:center;padding:12px 0}.circle-icon{width:48px;height:48px;border-radius:50%;background:var(--soft);display:grid;place-items:center}.check-content{flex:1}.check-title{display:flex;justify-content:space-between;margin-bottom:8px}.check-title span{color:var(--muted)}.bar{height:8px;background:#ece8e3;border-radius:99px;overflow:hidden}.bar i{display:block;height:100%;width:0;background:var(--success);border-radius:99px}.muted{color:var(--muted)}.view{display:none}.view.active{display:block}.page-head{display:flex;align-items:center;gap:12px;padding:12px 0 18px}.page-head h2{margin:0;font-size:24px}.back{font-size:36px}.form-card{padding:18px;display:flex;flex-direction:column;gap:12px}.form-card input,.form-card textarea,.form-card select,.add-line input{width:100%;border:1px solid var(--line);background:#fff;border-radius:14px;padding:13px;font:inherit}.primary,.add-line button{border:0;background:var(--accent);color:#fff;border-radius:14px;padding:13px 16px;font-weight:700}.stack{display:flex;flex-direction:column;gap:12px;margin-top:14px}.item-card{padding:16px}.item-card small{color:var(--muted)}.bottom-nav{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:min(100%,460px);background:rgba(255,255,255,.94);backdrop-filter:blur(16px);display:grid;grid-template-columns:repeat(5,1fr);align-items:end;padding:10px 12px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}.nav-btn{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:19px;color:#777}.nav-btn span{font-size:11px}.nav-btn.active{color:var(--accent)}.plus-btn{width:62px;height:62px;border-radius:50%;border:0;background:var(--accent);color:#fff;font-size:34px;transform:translateY(-16px);box-shadow:0 8px 20px rgba(80,60,40,.18)}dialog{width:min(92vw,420px);border:0;border-radius:24px;padding:20px;background:var(--card);color:var(--text)}dialog::backdrop{background:rgba(0,0,0,.3)}.dialog-head{display:flex;align-items:center;justify-content:space-between}.dialog-head h3{margin:0}.dialog-head button{border:0;background:none;font-size:20px}.checklist-items{display:flex;flex-direction:column;gap:10px;margin:18px 0}.checklist-items label{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}.add-line{display:flex;gap:8px}.add-line button{white-space:nowrap}@media(max-width:380px){.hero{grid-template-columns:1fr}.progress-ring{width:138px}.quick-grid{grid-template-columns:repeat(2,1fr)}}
 .nameday{margin-top:4px;font-size:13px;color:var(--muted)}
 .baby-name-card{margin-bottom:14px;padding:14px 16px;display:flex;align-items:center;gap:12px}
@@ -1724,3 +1724,46 @@ body[data-theme="blue"] .nav-item.active{
 .gender-reveal-text{display:grid;gap:5px;margin-top:11px}.gender-reveal-text span{font-size:11px;font-weight:700;color:#74635a}.gender-reveal-text input{width:100%;box-sizing:border-box;padding:10px 11px;border:1px solid var(--line,#eadfd6);border-radius:12px;background:#fff;font:inherit;color:inherit}
 .gender-reveal-settings>small{display:block;margin-top:8px;font-size:10px;line-height:1.4;color:var(--muted)}
 .memory-video-thumb.is-ultrasound::after{content:'US';position:absolute;left:5px;bottom:5px;padding:2px 5px;border-radius:7px;background:rgba(255,255,255,.88);font-size:8px;font-weight:800;color:#77655c}
+
+
+/* Accessibility polish — WCAG contrast + native semantics */
+#themeSelect[hidden]{display:none!important}
+
+/* Text that previously used the pale decorative accent now uses a readable caramel. */
+.pill,.text-btn,.secondary,.nav-btn.active,.create-checklist-btn,
+.equipment-budget-start,.equipment-budget-head button,
+.memory-video-select-all,.custom-check-icon,.baby-name-icon{
+  color:var(--accent-strong)!important;
+}
+
+/* White text needs a darker background for 4.5:1 contrast. */
+.primary,.add-line button,.plus-btn,.big-note-plus,.nav-center-plus,
+.filter-btn.active,.checklist-switcher button.active,.last-memory-date{
+  background:var(--accent-strong)!important;
+  border-color:var(--accent-strong)!important;
+  color:#fff!important;
+}
+
+/* Small secondary text: keep the warm grey, only a little darker. */
+.nav-btn{color:#706a64}
+.welcome-by,.language-card h2 span,.madlaart-credit,.about-created-by{color:#706a64!important}
+.delete-checklist-item.equipment-delete,.delete-checklist-item.checklist-delete-text{color:#94574f}
+
+/* Active gender choice labels need AA contrast on their tinted cards. */
+.gender-reveal-option.girl.active{color:#8f4962}
+.gender-reveal-option.boy.active{color:#3f6f91}
+
+/* Real preview buttons: retain the same circular appearance. */
+button.memory-music-preview{
+  border:0;
+  padding:0;
+  font:inherit;
+  cursor:pointer;
+  color:var(--accent-strong);
+}
+button.memory-music-preview:focus-visible,
+.currency-option:focus-visible,.theme-choice-card:focus-visible,.gender-choice-card:focus-visible,
+.gender-reveal-option:focus-visible,.memory-music-option:focus-visible{
+  outline:3px solid color-mix(in srgb,var(--accent-strong) 70%,#fff);
+  outline-offset:2px;
+}
