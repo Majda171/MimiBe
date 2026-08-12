@@ -1,7 +1,7 @@
 {
-  "name": "MimiBe",
+  "name": "MimiBe – těhotenský plánovač",
   "short_name": "MimiBe",
-  "description": "Těhotenský plánovač MimiBe",
+  "description": "Těhotenský plánovač pro vzpomínky, checklisty, výbavičku, fotografie a videa.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

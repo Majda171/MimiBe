@@ -488,55 +488,8 @@ async function init(){
 init();
 
 
-// v6 — automatická prezentace vzpomínek
-let memoryTimer=null, memoryIndex=0;
+// Zdroj fotografie – používá galerie i moderní generátor videa.
 function photoSrc(p){return p?.image||p?.dataUrl||p?.src||p?.url||p?.photo||'';}
-async function sortedPhotos(){const photos=photoDB.db ? await photoDB.all() : []; return photos.filter(p=>photoSrc(p)).sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));}
-function showMemoryFrame(list){
-  if(!list.length) return;
-  const p=list[memoryIndex%list.length];
-  const img=$('#memoryImage');
-  img.style.transition='opacity .85s ease, transform 2.8s ease';
-  img.style.opacity='0';
-  img.style.transform='scale(1.015)';
-  setTimeout(()=>{
-    img.src=photoSrc(p);
-    $('#memoryCaption').textContent=[p.date||'',p.caption||''].filter(Boolean).join(' · ');
-    $('#memoryCounter').textContent=`${memoryIndex%list.length+1} / ${list.length}`;
-    requestAnimationFrame(()=>{img.style.opacity='1';img.style.transform='scale(1.04)';});
-  },420);
-}
-async function playMemory(){
-  const list=await sortedPhotos(); if(!list.length){alert(i18nMsg('Nejdřív přidej alespoň jednu fotku.','Please add at least one photo first.'));return;}
-  memoryIndex=0; {const d=document.querySelector('#memoryDialog'); if(d?.showModal)d.showModal(); else d?.setAttribute('open','');} showMemoryFrame(list);
-  clearInterval(memoryTimer); memoryTimer=setInterval(()=>{memoryIndex++; if(memoryIndex>=list.length) memoryIndex=0; showMemoryFrame(list)},2400);
-}
-document.addEventListener('click',e=>{if(e.target.closest('#createMemory'))playMemory();});
-document.addEventListener('click',e=>{if(e.target.closest('#closeMemory')){clearInterval(memoryTimer);const d=document.querySelector('#memoryDialog');if(d?.close)d.close();else d?.removeAttribute('open');}});
-
-async function exportMemoryWebM(){
-  const list=await sortedPhotos(); if(!list.length){alert(i18nMsg('Nejdřív přidej alespoň jednu fotku.','Please add at least one photo first.'));return;}
-  if(!window.MediaRecorder){alert(i18nMsg('Tento prohlížeč zatím export videa nepodporuje.','This browser does not support video export yet.'));return;}
-  const canvas=document.createElement('canvas'); canvas.width=720; canvas.height=1280; const ctx=canvas.getContext('2d');
-  const stream=canvas.captureStream(30); const chunks=[]; let rec;
-  try{rec=new MediaRecorder(stream,{mimeType:'video/webm;codecs=vp8'});}catch(e){rec=new MediaRecorder(stream);}
-  rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
-  rec.onstop=()=>{const blob=new Blob(chunks,{type:'video/webm'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='nase-vzpominky.webm';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)};
-  rec.start();
-  for(const p of list){
-    const im=new Image(); im.src=photoSrc(p); await new Promise(r=>{im.onload=r;im.onerror=r});
-    for(let f=0;f<60;f++){
-      ctx.fillStyle='#f7f3ed';ctx.fillRect(0,0,720,1280);
-      const scale=Math.min(650/im.width,930/im.height); const w=im.width*scale,h=im.height*scale;
-      ctx.drawImage(im,(720-w)/2,135,w,h);
-      ctx.fillStyle='#5c5148';ctx.textAlign='center';ctx.font='30px sans-serif';ctx.fillText(p.caption||'Naše vzpomínky ♡',360,1120);
-      ctx.font='22px sans-serif';ctx.fillText(p.date||'',360,1160);
-      await new Promise(r=>setTimeout(r,33));
-    }
-  }
-  rec.stop();
-}
-document.addEventListener('click',e=>{if(e.target.closest('#exportMemory'))exportMemoryWebM();});
 
 
 // v8 — personal greeting
@@ -988,7 +941,6 @@ document.addEventListener('DOMContentLoaded',()=>{
 });
 
 
-
 // v69 — authoritative theme switching
 function mimiSetTheme(theme){
   const clean=['neutral','pink','blue'].includes(theme) ? theme : 'neutral';
@@ -1083,7 +1035,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 
 // MimiBe automatic local memory video creator
-const memoryVideoState={photos:[],selected:new Set(),url:'',working:false,logo:null,ffmpeg:null,musicChoice:'none',previewMusic:null,mode:'memory',revealGender:'',revealIntro:''};
+const memoryVideoState={photos:[],selected:new Set(),url:'',working:false,logo:null,musicChoice:'none',previewMusic:null,mode:'memory',revealGender:'',revealIntro:''};
 
 
 const MIMIBE_MUSIC_PRESETS={
@@ -1299,29 +1251,6 @@ function drawBlurBackdrop(ctx,img,w,h,alpha=1){
   ctx.restore();
 }
 
-async function tryFfmpegMp4(blob,status,progressFill,progressText){
-  if(!window.FFmpeg?.createFFmpeg || !window.FFmpeg?.fetchFile)return null;
-  try{
-    status.textContent=videoText('Finalizuji MP4…','Finalising MP4…');
-    progressFill.style.width='96%'; progressText.textContent='96 %';
-    if(!memoryVideoState.ffmpeg){
-      memoryVideoState.ffmpeg=window.FFmpeg.createFFmpeg({
-        log:false,
-        corePath:'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js'
-      });
-    }
-    const ffmpeg=memoryVideoState.ffmpeg;
-    if(!ffmpeg.isLoaded())await ffmpeg.load();
-    ffmpeg.FS('writeFile','mimibe-input.webm',await window.FFmpeg.fetchFile(blob));
-    await ffmpeg.run('-i','mimibe-input.webm','-c:v','libx264','-preset','veryfast','-crf','24','-pix_fmt','yuv420p','-movflags','faststart','-an','mimibe-output.mp4');
-    const out=ffmpeg.FS('readFile','mimibe-output.mp4');
-    try{ffmpeg.FS('unlink','mimibe-input.webm');ffmpeg.FS('unlink','mimibe-output.mp4');}catch(e){}
-    return new Blob([out.buffer],{type:'video/mp4'});
-  }catch(err){
-    console.warn('FFmpeg MP4 fallback:',err);
-    return null;
-  }
-}
 
 function coverImage(ctx,img,w,h,scale=1,panX=0,panY=0,alpha=1){
   const base=Math.max(w/img.width,h/img.height)*scale;
@@ -1440,34 +1369,6 @@ function drawPhotoFrame(ctx,img,w,h,progress,nextImg=null,transition=0,caption='
   if(caption){ctx.font=`600 ${Math.round(w*.034)}px Arial, sans-serif`;const txt=caption.length>55?caption.slice(0,54)+'…':caption;ctx.fillText(txt,w/2,h-106);}
   if(dateText){ctx.font=`500 ${Math.round(w*.026)}px Arial, sans-serif`;ctx.fillStyle=text+'9e';ctx.fillText(dateText,w/2,h-68);}
   ctx.fillStyle=accent;ctx.globalAlpha=.65;ctx.font=`${Math.round(w*.03)}px serif`;ctx.fillText('♡',w/2,h-32);ctx.globalAlpha=1;
-}
-function drawVideoOutro(ctx,w,h,theme,progress=1,logoImg=null){
-  const palettes={neutral:['#fbf7f2','#68544a','#d7b58c'],pink:['#fff4f7','#73555e','#e8a0b5'],blue:['#f2f9fc','#526974','#91c9e2']};
-  const [bg,text,accent]=palettes[theme]||palettes.neutral;
-  const p=easeInOutVideo(progress);
-  ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);ctx.textAlign='center';
-  ctx.globalAlpha=Math.min(1,p*1.5);
-  const g=ctx.createRadialGradient(w/2,h*.42,20,w/2,h*.42,w*.34);g.addColorStop(0,accent+'36');g.addColorStop(1,accent+'00');ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
-  ctx.fillStyle=text;ctx.font=`700 ${Math.round(w*.064)}px Georgia, serif`;ctx.fillText(videoText('A náš příběh pokračuje… ♡','And our story continues… ♡'),w/2,h*.48);
-  if(logoImg){const mw=w*.30,mh=h*.08,r=Math.min(mw/logoImg.width,mh/logoImg.height);ctx.drawImage(logoImg,(w-logoImg.width*r)/2,h*.62-logoImg.height*r/2,logoImg.width*r,logoImg.height*r);}
-  else{ctx.font=`600 ${Math.round(w*.032)}px Arial, sans-serif`;ctx.fillStyle=accent;ctx.fillText('MimiBe',w/2,h*.64);}
-  ctx.globalAlpha=1;
-}
-async function decodeMusicFile(file,audioCtx){
-  if(!file)return null;
-  const buf=await file.arrayBuffer();
-  return await audioCtx.decodeAudioData(buf.slice(0));
-}
-
-function chooseRecordingMime(){
-  const types=[
-    'video/mp4;codecs=h264,aac',
-    'video/mp4',
-    'video/webm;codecs=vp9,opus',
-    'video/webm;codecs=vp8,opus',
-    'video/webm'
-  ];
-  return types.find(t=>window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || '';
 }
 
 const MEDIABUNNY_URL='https://cdn.jsdelivr.net/npm/mediabunny@1.53.0/dist/bundles/mediabunny.min.mjs';
