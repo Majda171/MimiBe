@@ -1503,356 +1503,224 @@ async function loadRevealDetailImages(){
   return {hand,feet};
 }
 
-function refreshMemoryMusicChoice(){
-  document.querySelectorAll('[data-music-choice]').forEach(btn=>{
-    const active=btn.dataset.musicChoice===memoryVideoState.musicChoice;
-    btn.classList.toggle('active',active);
-    btn.setAttribute('aria-pressed',active?'true':'false');
-  });
-  const custom=document.getElementById('memoryCustomMusicWrap');
-  if(custom)custom.classList.toggle('hidden',memoryVideoState.musicChoice!=='custom');
+async function loadRevealCollageAssets(){
+  const pink=await dataUrlToBitmap('assets/booties-pink.webp');
+  const blue=await dataUrlToBitmap('assets/booties-blue.webp');
+  return {pink,blue};
 }
 
-function stopMemoryMusicPreview(){
-  const audio=document.getElementById('memoryMusicPreviewAudio');
-  if(audio){audio.pause();audio.removeAttribute('src');audio.load();}
-  memoryVideoState.previewMusic=null;
-  document.querySelectorAll('[data-preview-music]').forEach(el=>{el.textContent='▶';el.setAttribute('aria-label',videoText('Přehrát ukázku','Play preview'));el.setAttribute('aria-pressed','false');});
-}
-
-async function previewMemoryMusic(key,control){
-  const preset=MIMIBE_MUSIC_PRESETS[key];
-  if(!preset)return;
-  const audio=document.getElementById('memoryMusicPreviewAudio');
-  if(!audio)return;
-  if(memoryVideoState.previewMusic===key && !audio.paused){
-    audio.pause();
-    memoryVideoState.previewMusic=null;
-    control.textContent='▶';
-    return;
-  }
-  stopMemoryMusicPreview();
-  audio.src=preset.url;
-  audio.currentTime=0;
-  audio.volume=.75;
-  try{
-    await audio.play();
-    memoryVideoState.previewMusic=key;
-    control.textContent='❚❚';
-    control.setAttribute('aria-label',videoText('Pozastavit ukázku','Pause preview'));
-    control.setAttribute('aria-pressed','true');
-    audio.onended=()=>stopMemoryMusicPreview();
-  }catch(e){
-    console.warn('MimiBe music preview failed',e);
-    alert(videoText('Ukázku hudby se nepodařilo přehrát.','The music preview could not be played.'));
-  }
-}
-
-function selectedMemoryMusicPreset(){
-  const choice=memoryVideoState.musicChoice||'none';
-  if(choice==='none' || choice==='custom')return null;
-  return MIMIBE_MUSIC_PRESETS[choice]||null;
-}
-
-async function selectedMemoryMusicBlob(){
-  const choice=memoryVideoState.musicChoice||'none';
-  if(choice==='none')return null;
-  if(choice==='custom'){
-    return document.getElementById('memoryVideoMusic')?.files?.[0]||null;
-  }
-  const preset=MIMIBE_MUSIC_PRESETS[choice];
-  if(!preset)return null;
-  const musicUrl=new URL(preset.url,document.baseURI).href;
-  const response=await fetch(musicUrl,{cache:'force-cache'});
-  if(!response.ok)throw new Error('Music load failed: '+response.status);
-  const blob=await response.blob();
-  if(!blob.size)throw new Error('Music file is empty');
-  return blob;
-}
-
-async function makeLoopedAudioBuffer(file,totalSec){
-  if(!file)return null;
-  const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;
-  const ac=new AC();
-  try{
-    const decoded=await ac.decodeAudioData((await file.arrayBuffer()).slice(0));
-    const sr=decoded.sampleRate,channels=Math.min(2,decoded.numberOfChannels),length=Math.max(1,Math.ceil(totalSec*sr));
-    const out=ac.createBuffer(channels,length,sr);
-    for(let ch=0;ch<channels;ch++){
-      const src=decoded.getChannelData(Math.min(ch,decoded.numberOfChannels-1)),dest=out.getChannelData(ch);
-      let pos=0;
-      while(pos<dest.length){const n=Math.min(src.length,dest.length-pos);dest.set(src.subarray(0,n),pos);pos+=n;if(!src.length)break;}
-      const fadeIn=Math.min(Math.floor(sr*.35),dest.length),fadeOut=Math.min(Math.floor(sr*.8),dest.length);
-      for(let i=0;i<fadeIn;i++)dest[i]*=i/fadeIn;
-      for(let i=0;i<fadeOut;i++){const k=dest.length-fadeOut+i;dest[k]*=(1-i/fadeOut);}
-    }
-    return out;
-  }finally{try{await ac.close();}catch(e){}}
-}
-
-async function prepareVideoDrawables(photos,progressFill,progressText,startPct=3,spanPct=8){
-  const drawables=[],usablePhotos=[],failed=[];
-  for(let i=0;i<photos.length;i++){
-    try{
-      const drawable=await dataUrlToBitmap(photoSrc(photos[i])||photos[i].image);
-      drawables.push(drawable);usablePhotos.push(photos[i]);
-    }catch(error){
-      console.warn('MimiBe: photo skipped during video export',photos[i]?.id,error);
-      failed.push(photos[i]);
-    }
-    const pct=startPct+Math.round((i+1)/photos.length*spanPct);
-    if(progressFill)progressFill.style.width=pct+'%';
-    if(progressText)progressText.textContent=pct+' %';
-  }
-  return {drawables,usablePhotos,failed};
-}
-
-async function generateAutomaticMemoryVideo(){
-  if(memoryVideoState.working)return;
-  const photos=selectedMemoryVideoPhotos();
-  if(photos.length<2 || photos.length>15)return;
-
-  if(!window.VideoEncoder){
-    alert(videoText('Tento telefon nepodporuje moderní kódování videa (WebCodecs).','This phone does not support modern video encoding (WebCodecs).'));
-    return;
-  }
-
-  memoryVideoState.working=true;
-  const generate=document.getElementById('generateMemoryVideo'),cancel=document.getElementById('cancelMemoryVideo');
-  const progressBox=document.getElementById('memoryVideoProgress'),progressFill=document.getElementById('memoryVideoProgressFill');
-  const progressText=document.getElementById('memoryVideoProgressText'),status=document.getElementById('memoryVideoStatus');
-  const preview=document.getElementById('memoryVideoPreview'),download=document.getElementById('downloadMemoryVideo');
-  generate.disabled=true;cancel.disabled=true;progressBox.classList.remove('hidden');preview.classList.add('hidden');download.classList.add('hidden');
-
-  const bitmaps=[];
-  try{
-    status.textContent=videoText('Načítám nový video modul…','Loading the new video engine…');
-    progressFill.style.width='2%';progressText.textContent='2 %';
-    const MB=await loadMediabunny();
-    const {Output,Mp4OutputFormat,BufferTarget,CanvasSource,AudioBufferSource,Quality}=MB;
-
-    status.textContent=videoText('Připravuji fotky…','Preparing photos…');
-    const logoImg=await loadMemoryVideoLogo(),babyImg=await loadMemoryVideoBaby();
-    const prepared=await prepareVideoDrawables(photos,progressFill,progressText);
-    bitmaps.push(...prepared.drawables);
-    const usablePhotos=prepared.usablePhotos;
-    if(bitmaps.length<2)throw new Error('Pro video se nepodařilo načíst alespoň dvě fotografie');
-
-    const W=720,H=1280,FPS=30,FRAME=1/FPS;
-    const INTRO=3.5,INTRO_FADE=1.0,PHOTO=4.2,FADE=1.2,OUTRO=2.7,OUTRO_FADE=1.0;
-    const photoStart=INTRO-INTRO_FADE, step=PHOTO-FADE;
-    const photoEnd=photoStart+(bitmaps.length-1)*step+PHOTO;
-    const outroStart=photoEnd-OUTRO_FADE,totalSec=outroStart+OUTRO;
-    const totalFrames=Math.ceil(totalSec*FPS);
-
-    const canvas=document.createElement('canvas');
-    canvas.width=W;canvas.height=H;
-    const ctx=canvas.getContext('2d',{alpha:false});
-    if(!ctx)throw new Error('Canvas 2D není dostupný');
-
-    const output=new Output({format:new Mp4OutputFormat(),target:new BufferTarget()});
-    const videoSource=new CanvasSource(canvas,{codec:'avc',quality:new Quality({bitrate:4_000_000})});
-    output.addVideoTrack(videoSource,{frameRate:FPS});
-
-    let audioSource=null,audioBuffer=null;
-    if(memoryVideoState.musicChoice!=='none'){
-      try{
-        status.textContent=videoText('Připravuji hudbu…','Preparing music…');
-        const musicBlob=await selectedMemoryMusicBlob();
-        if(musicBlob){
-          audioBuffer=await makeLoopedAudioBuffer(musicBlob,totalSec);
-          if(audioBuffer){
-            audioSource=new AudioBufferSource({codec:'aac',quality:new Quality({bitrate:128_000})});
-            output.addAudioTrack(audioSource);
-          }
-        }
-      }catch(e){
-        console.warn('MimiBe: audio skipped',e);
-        audioSource=null;audioBuffer=null;
-        alert(videoText('Vybranou hudbu se nepodařilo načíst. Video se vytvoří bez hudby.','The selected music could not be loaded. The video will be created without music.'));
-      }
-    }
-
-    await output.start();
-    const audioWritePromise=(audioSource&&audioBuffer)
-      ? audioSource.add(audioBuffer).then(()=>audioSource.close())
-      : Promise.resolve();
-
-    const selectedPreset=selectedMemoryMusicPreset();
-    const musicCredit=selectedPreset?.credit||null;
-
-    const firstDate=usablePhotos[0]?.date,lastDate=usablePhotos[usablePhotos.length-1]?.date;
-    let period='';
-    try{
-      if(firstDate&&lastDate){
-        const a=new Date(firstDate+'T00:00:00'),b=new Date(lastDate+'T00:00:00');
-        if(firstDate===lastDate)period=videoLang()==='en'?new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'numeric',year:'numeric'}).format(a):`${a.getDate()}.${a.getMonth()+1}.${a.getFullYear()}`;
-        else period=videoLang()==='en'?`${new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'numeric'}).format(a)} – ${new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'numeric',year:'numeric'}).format(b)}`:`${a.getDate()}.${a.getMonth()+1}. – ${b.getDate()}.${b.getMonth()+1}. ${b.getFullYear()}`;
-      }
-    }catch(e){}
-
-    status.textContent=videoText('Vykresluji plynulé video…','Rendering smooth video…');
-    for(let frame=0;frame<totalFrames;frame++){
-      const t=frame/FPS;
-      if(t<photoStart){
-        drawMemoryIntroClean(ctx,W,H,t/INTRO,logoImg,bitmaps[0],babyImg,data?.babyName||'',period);
-      }else if(t<INTRO){
-        const x=videoSmoothstep((t-photoStart)/INTRO_FADE);
-        ctx.clearRect(0,0,W,H);
-        ctx.save();ctx.globalAlpha=1-x;drawMemoryIntroClean(ctx,W,H,t/INTRO,logoImg,bitmaps[0],babyImg,data?.babyName||'',period);ctx.restore();
-        ctx.save();ctx.globalAlpha=x;drawPhotoTimeline(ctx,bitmaps,W,H,0,PHOTO,FADE);ctx.restore();
-      }else if(t<outroStart){
-        drawPhotoTimeline(ctx,bitmaps,W,H,t-photoStart,PHOTO,FADE);
-      }else if(t<photoEnd){
-        const x=videoSmoothstep((t-outroStart)/OUTRO_FADE);
-        ctx.clearRect(0,0,W,H);
-        ctx.save();ctx.globalAlpha=1-x;drawPhotoTimeline(ctx,bitmaps,W,H,t-photoStart,PHOTO,FADE);ctx.restore();
-        ctx.save();ctx.globalAlpha=x;drawMemoryOutroClean(ctx,W,H,(t-outroStart)/OUTRO,logoImg,musicCredit);ctx.restore();
-      }else{
-        drawMemoryOutroClean(ctx,W,H,(t-outroStart)/OUTRO,logoImg,musicCredit);
-      }
-
-      await videoSource.add(t,FRAME,{keyFrame:frame===0 || frame%(FPS*2)===0});
-      const pct=12+Math.round((frame+1)/totalFrames*84);progressFill.style.width=pct+'%';progressText.textContent=pct+' %';
-      if(frame%12===0)await new Promise(r=>setTimeout(r,0));
-    }
-    videoSource.close();
-    await audioWritePromise;
-    status.textContent=videoText('Dokončuji MP4…','Finalising MP4…');progressFill.style.width='97%';progressText.textContent='97 %';
-    await output.finalize();
-
-    const blob=new Blob([output.target.buffer],{type:'video/mp4'});
-    if(memoryVideoState.url)URL.revokeObjectURL(memoryVideoState.url);
-    memoryVideoState.url=URL.createObjectURL(blob);
-    preview.src=memoryVideoState.url;preview.classList.remove('hidden');
-    download.href=memoryVideoState.url;download.download='MimiBe-vzpominky.mp4';download.classList.remove('hidden');
-    progressFill.style.width='100%';progressText.textContent='100 %';status.textContent=videoText('Hotovo ♡ Video je připravené.','Done ♡ Your video is ready.');
-  }catch(err){
-    console.error('MimiBe video error',err);
-    status.textContent=videoText('Video se nepodařilo vytvořit.','The video could not be created.');
-    alert(videoText('Video se nepodařilo vytvořit. MimiBe narazilo na problém při zpracování obrazu nebo zvuku.','The video could not be created. MimiBe encountered a problem while processing the image or audio.'));
-  }finally{
-    bitmaps.forEach(closeVideoBitmap);memoryVideoState.working=false;generate.disabled=false;cancel.disabled=false;refreshMemoryVideoSelection();
-  }
-}
-
-
-function drawRevealHeart(ctx,x,y,size,color,alpha=1){
-  ctx.save();ctx.translate(x,y);ctx.scale(size/100,size/100);ctx.globalAlpha*=alpha;ctx.fillStyle=color;ctx.beginPath();
-  ctx.moveTo(0,30);ctx.bezierCurveTo(-58,-7,-48,-58,-16,-58);ctx.bezierCurveTo(7,-58,18,-39,18,-27);ctx.bezierCurveTo(18,-39,29,-58,52,-58);ctx.bezierCurveTo(84,-58,94,-7,36,30);ctx.lineTo(18,46);ctx.lineTo(0,62);ctx.lineTo(-18,46);ctx.lineTo(-36,30);ctx.closePath();ctx.fill();ctx.restore();
-}
-function drawRevealLogo(ctx,w,h,logoImg,y=.11,scale=.34){
-  if(!logoImg)return;const maxW=w*scale,maxH=h*.10,r=Math.min(maxW/logoImg.width,maxH/logoImg.height);const lw=logoImg.width*r,lh=logoImg.height*r;ctx.drawImage(logoImg,(w-lw)/2,h*y-lh/2,lw,lh);
-}
-function drawRevealWrappedText(ctx,text,x,y,maxWidth,lineHeight,maxLines=3){
-  const words=String(text||'').trim().split(/\s+/);let line='',lines=[];
-  for(const word of words){const test=line?line+' '+word:word;if(ctx.measureText(test).width>maxWidth&&line){lines.push(line);line=word;if(lines.length>=maxLines-1)break;}else line=test;}
-  if(line&&lines.length<maxLines)lines.push(line);
-  const top=y-(lines.length-1)*lineHeight/2;lines.forEach((ln,i)=>ctx.fillText(ln,x,top+i*lineHeight));
-}
-function drawRevealIntro(ctx,w,h,p,logoImg,text){
-  ctx.fillStyle='#F7F3ED';ctx.fillRect(0,0,w,h);drawRevealLogo(ctx,w,h,logoImg,.14,.38);
-  const a=videoSmoothstep(Math.min(1,p*1.6));ctx.save();ctx.globalAlpha=a;ctx.textAlign='center';ctx.fillStyle='#65534A';ctx.font=`600 ${Math.round(w*.052)}px Arial, sans-serif`;drawRevealWrappedText(ctx,text||videoText('Máme pro vás malé překvapení…','We have a little surprise for you…'),w/2,h*.50,w*.78,Math.round(w*.066),3);drawRevealHeart(ctx,w/2,h*.68,w*.08,'#D9B6A5',.78+.18*Math.sin(p*Math.PI*3));ctx.restore();
-}
-function drawRevealPhotoScene(ctx,img,w,h,progress=0,alpha=1){
-  const iw=img.naturalWidth||img.width,ih=img.naturalHeight||img.height;
-  if(!iw||!ih)return;
-  const p=videoSmoothstep(Math.max(0,Math.min(1,progress)));
+function drawRoundedImageFrame(ctx,img,x,y,w,h,radius=26,bg='#ffffff'){
   ctx.save();
-  ctx.globalAlpha*=alpha;
-  ctx.fillStyle='#F7F3ED';ctx.fillRect(0,0,w,h);
-
-  // Jemná rozostřená černobílá výplň na celé 9:16 pozadí.
-  ctx.save();
-  ctx.filter='grayscale(1) blur(26px) brightness(.98) contrast(.90)';
-  coverImage(ctx,img,w,h,1.12,0,0,1);
+  ctx.fillStyle=bg;
+  ctx.beginPath();
+  if(ctx.roundRect) ctx.roundRect(x,y,w,h,radius);
+  else {ctx.rect(x,y,w,h);}
+  ctx.fill();
+  ctx.clip();
+  const iw=img.naturalWidth||img.width, ih=img.naturalHeight||img.height;
+  const scale=Math.min((w-18)/iw,(h-18)/ih);
+  const dw=iw*scale, dh=ih*scale;
+  ctx.fillStyle='#ffffff';
+  ctx.fillRect(x,y,w,h);
+  ctx.drawImage(img, x+(w-dw)/2, y+(h-dh)/2, dw, dh);
   ctx.restore();
-  ctx.fillStyle='rgba(247,243,237,.15)';ctx.fillRect(0,0,w,h);
 
-  // Celá fotografie bez ořezu, jen velmi pomalý filmový pohyb.
-  const base=Math.min((w*.94)/iw,(h*.91)/ih);
-  const scale=base*(1.015+.025*p);
+  ctx.save();
+  ctx.strokeStyle='rgba(219,207,198,.95)';
+  ctx.lineWidth=2;
+  ctx.beginPath();
+  if(ctx.roundRect) ctx.roundRect(x,y,w,h,radius);
+  else ctx.rect(x,y,w,h);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawRevealPolaroid(ctx,img,cx,cy,w,h,angle){
+  if(!img)return;
+  ctx.save();
+  ctx.translate(cx,cy);
+  ctx.rotate(angle);
+
+  // stín
+  ctx.shadowColor='rgba(83,66,53,.16)';
+  ctx.shadowBlur=24;
+  ctx.shadowOffsetY=12;
+  ctx.fillStyle='#FFFDFC';
+  ctx.beginPath();
+  if(ctx.roundRect)ctx.roundRect(-w/2,-h/2,w,h,18);else ctx.rect(-w/2,-h/2,w,h);
+  ctx.fill();
+  ctx.shadowColor='transparent';
+
+  const pad=16,bottom=50;
+  const innerW=w-pad*2,innerH=h-pad-bottom;
+  ctx.fillStyle='#F0ECE8';
+  ctx.fillRect(-innerW/2,-h/2+pad,innerW,innerH);
+
+  const iw=img.naturalWidth||img.width,ih=img.naturalHeight||img.height;
+  const scale=Math.min(innerW/iw,innerH/ih);
   const dw=iw*scale,dh=ih*scale;
-  const drift=(p-.5)*h*.012;
-  ctx.filter='grayscale(1) brightness(1.03) contrast(.96)';
-  ctx.drawImage(img,(w-dw)/2,(h-dh)/2+drift,dw,dh);
+  ctx.filter='grayscale(1) contrast(1.02)';
+  ctx.drawImage(img,-dw/2,-h/2+pad+(innerH-dh)/2,dw,dh);
   ctx.filter='none';
 
-  // Lehoučké zesvětlení okrajů.
-  const grad=ctx.createRadialGradient(w/2,h*.48,w*.15,w/2,h*.48,h*.72);
-  grad.addColorStop(0,'rgba(255,255,255,0)');
-  grad.addColorStop(1,'rgba(247,243,237,.18)');
-  ctx.fillStyle=grad;ctx.fillRect(0,0,w,h);
+  ctx.strokeStyle='rgba(208,197,188,.7)';
+  ctx.lineWidth=1.5;
+  ctx.beginPath();
+  if(ctx.roundRect)ctx.roundRect(-w/2,-h/2,w,h,18);else ctx.rect(-w/2,-h/2,w,h);
+  ctx.stroke();
   ctx.restore();
 }
-function drawRevealPhotoTimeline(ctx,imgs,w,h,t,photoDur,fadeDur){
-  const step=photoDur-fadeDur;let j=Math.floor(t/step);j=Math.max(0,Math.min(imgs.length-1,j));const local=t-j*step;
-  if(j>0 && local<fadeDur){const blend=videoSmoothstep(local/fadeDur);drawRevealPhotoScene(ctx,imgs[j-1],w,h,1,1-blend);drawRevealPhotoScene(ctx,imgs[j],w,h,local/photoDur,blend);}else drawRevealPhotoScene(ctx,imgs[j],w,h,Math.min(1,local/photoDur),1);
-}
-function drawRevealQuestion(ctx,w,h,p,logoImg){
-  ctx.fillStyle='#F7F3ED';ctx.fillRect(0,0,w,h);ctx.save();ctx.globalAlpha=videoSmoothstep(Math.min(1,p*1.5));drawRevealLogo(ctx,w,h,logoImg,.14,.31);ctx.textAlign='center';ctx.fillStyle='#65534A';ctx.font=`700 ${Math.round(w*.07)}px Arial, sans-serif`;ctx.fillText(videoText('Tipnete si?','Can you guess?'),w/2,h*.50);drawRevealHeart(ctx,w*.41,h*.66,w*.065,'#E7A8B9',.82);drawRevealHeart(ctx,w*.59,h*.66,w*.065,'#9ABAD8',.82);ctx.restore();
-}
-function drawRevealFinal(ctx,w,h,p,gender,logoImg,babyName,musicCredit){
+
+function drawRevealCollage(ctx,w,h,images,gender,logoImg,babyName,musicCredit){
   const isGirl=gender==='girl';
-  const tint=isGirl?'#F8E4EB':'#E3F0F8';
-  const accent=isGirl?'#D96F98':'#5E9FCB';
-  const deep=isGirl?'#B84F77':'#3E7FAE';
+  const accent=isGirl?'#D58EA9':'#7EAFD2';
+  const pale=isGirl?'#F5E5EB':'#E6F1F7';
+  const gold='#C9A779';
+  const dark='#65544B';
+
+  ctx.fillStyle='#F8F3EC';
+  ctx.fillRect(0,0,w,h);
+
+  // jemná světla na pozadí
+  const g=ctx.createRadialGradient(w*.22,h*.13,0,w*.22,h*.13,w*.42);
+  g.addColorStop(0,'rgba(255,255,255,.82)');
+  g.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+
+  // skutečné logo MimiBe z assets/mimibe-logo.svg
+  drawRevealLogo(ctx,w,h,logoImg,.085,.34);
+
+  // dvě screeningové "fotky"
+  drawRevealPolaroid(ctx,images[0],w*.34,h*.35,w*.50,h*.34,-0.065);
+  drawRevealPolaroid(ctx,images[1]||images[0],w*.65,h*.46,w*.47,h*.31,0.072);
+
+  // dekorace kolem fotek
+  drawRevealHeart(ctx,w*.20,h*.55,w*.022,accent,.42);
+  drawRevealHeart(ctx,w*.79,h*.28,w*.018,accent,.34);
+  drawRevealHeart(ctx,w*.50,h*.52,w*.025,accent,.50);
+
+  ctx.fillStyle=gold;
+  [[.12,.22,3],[.86,.51,4],[.18,.67,3],[.73,.64,3],[.89,.20,2.7]].forEach(p=>{
+    ctx.beginPath();ctx.arc(w*p[0],h*p[1],p[2],0,Math.PI*2);ctx.fill();
+  });
+
+  // nadpis jako v návrhu
+  ctx.textAlign='center';
+  ctx.fillStyle='#9B8068';
+  ctx.font=`600 ${Math.round(w*.032)}px Georgia, serif`;
+  ctx.fillText(videoText('NAŠE MALÉ','OUR LITTLE'),w/2,h*.685);
+
+  ctx.fillStyle=accent;
+  ctx.font=`italic ${Math.round(w*.071)}px Georgia, serif`;
+  ctx.fillText(videoText('překvapení','surprise'),w/2,h*.735);
+
+  // gender badge
+  ctx.fillStyle=pale;
+  ctx.beginPath();
+  if(ctx.roundRect)ctx.roundRect(w*.29,h*.765,w*.42,h*.06,26);else ctx.rect(w*.29,h*.765,w*.42,h*.06);
+  ctx.fill();
+  ctx.fillStyle=accent;
+  ctx.font=`800 ${Math.round(w*.042)}px Arial, sans-serif`;
+  ctx.fillText(isGirl?videoText('HOLČIČKA','GIRL'):videoText('CHLAPEČEK','BOY'),w/2,h*.807);
+
+  if((babyName||'').trim()){
+    ctx.fillStyle=dark;
+    ctx.font=`600 ${Math.round(w*.036)}px Georgia, serif`;
+    ctx.fillText((babyName||'').trim(),w/2,h*.848);
+  }
+
+  // botičky dole — barevné podle odhalení
+  const bootie=gender==='girl' ? window.__revealBootiesPink : window.__revealBootiesBlue;
+  if(bootie){
+    const bw=w*.25,bh=bw*.69;
+    ctx.save();
+    ctx.globalAlpha=.96;
+    ctx.translate(w*.41,h*.902);ctx.rotate(-.07);
+    ctx.drawImage(bootie,-bw/2,-bh/2,bw,bh);
+    ctx.restore();
+
+    ctx.save();
+    ctx.globalAlpha=.96;
+    ctx.translate(w*.59,h*.902);ctx.rotate(.07);
+    ctx.drawImage(bootie,-bw/2,-bh/2,bw,bh);
+    ctx.restore();
+  }
+
+  if(musicCredit){
+    ctx.fillStyle='#8C7A70';
+    ctx.font=`500 ${Math.round(w*.018)}px Arial, sans-serif`;
+    ctx.fillText(videoText('Hudba: ','Music: ')+musicCredit[0],w/2,h*.978);
+  }
+}
+function drawRevealFinal(ctx,w,h,p,gender,logoImg,babyName,musicCredit,endingImages){
+  const isGirl=gender==='girl';
+  const accent=isGirl?'#D58EA9':'#7EAFD2';
+  const tint=isGirl?'#F7E7ED':'#E7F2F8';
+  const deep=isGirl?'#B45F80':'#4F89B2';
   const pp=Math.max(0,Math.min(1,p));
 
-  ctx.fillStyle='#F7F3ED';ctx.fillRect(0,0,w,h);
+  // 0–52 %: srdíčkový přechod a odhalení
+  if(pp<.52){
+    const q=pp/.52;
+    ctx.fillStyle='#F8F3EC';ctx.fillRect(0,0,w,h);
+    drawRevealLogo(ctx,w,h,logoImg,.105,.32);
 
-  // Barevné světlo se jemně rozvine až v momentu odhalení.
-  const glow=videoSmoothstep(Math.min(1,pp/.35));
-  const rg=ctx.createRadialGradient(w/2,h*.48,0,w/2,h*.48,w*.72);
-  rg.addColorStop(0,tint);
-  rg.addColorStop(.58,`rgba(${isGirl?'248,228,235':'227,240,248'},${.72*glow})`);
-  rg.addColorStop(1,'rgba(247,243,237,0)');
-  ctx.globalAlpha=glow;ctx.fillStyle=rg;ctx.fillRect(0,0,w,h);ctx.globalAlpha=1;
+    ctx.textAlign='center';
+    if(q<.42){
+      ctx.fillStyle='#65544B';
+      ctx.font=`700 ${Math.round(w*.062)}px Georgia, serif`;
+      ctx.fillText(videoText('Tipnete si?','Can you guess?'),w/2,h*.36);
+      ctx.fillStyle='#8E7A70';
+      ctx.font=`500 ${Math.round(w*.031)}px Arial, sans-serif`;
+      ctx.fillText(videoText('Holčička, nebo chlapeček?','Girl or boy?'),w/2,h*.405);
+    }
 
-  drawRevealLogo(ctx,w,h,logoImg,.13,.34);
+    // Malé čisté srdíčko se plynule zvětší a funguje jako barevná maska.
+    const hp=videoSmoothstep(Math.max(0,Math.min(1,(q-.18)/.58)));
+    const heartSize=w*(.055 + hp*1.68);
+    ctx.save();
+    revealHeartPath(ctx,w/2,h*.52,heartSize);
+    ctx.clip();
+    const rg=ctx.createRadialGradient(w/2,h*.50,0,w/2,h*.50,h*.70);
+    rg.addColorStop(0,tint);
+    rg.addColorStop(1,accent);
+    ctx.fillStyle=rg;ctx.fillRect(0,0,w,h);
+    ctx.restore();
 
-  // Malé elegantní srdíčko – už ne přes celou obrazovku.
-  const heartIn=videoSmoothstep(Math.min(1,pp/.22));
+    // při téměř dokončeném přechodu se barva jemně rozpije i do rohů
+    if(q>.67){
+      const a=videoSmoothstep((q-.67)/.33);
+      ctx.globalAlpha=a;
+      ctx.fillStyle=tint;ctx.fillRect(0,0,w,h);
+      ctx.globalAlpha=1;
+
+      drawRevealLogo(ctx,w,h,logoImg,.105,.32);
+      ctx.fillStyle=deep;
+      ctx.font=`800 ${Math.round(w*.064)}px Arial, sans-serif`;
+      ctx.fillText(
+        isGirl?videoText('BUDE TO HOLČIČKA ♡','IT’S A GIRL ♡'):videoText('BUDE TO CHLAPEČEK ♡','IT’S A BOY ♡'),
+        w/2,h*.55
+      );
+      if((babyName||'').trim()){
+        ctx.fillStyle='#65544B';
+        ctx.font=`italic 600 ${Math.round(w*.048)}px Georgia, serif`;
+        ctx.fillText((babyName||'').trim(),w/2,h*.62);
+      }
+    }
+    return;
+  }
+
+  // 52–100 %: závěrečná koláž se dvěma screeningy a botičkami
+  const cp=videoSmoothstep((pp-.52)/.48);
   ctx.save();
-  ctx.globalAlpha=heartIn;
-  const pulse=1+.06*Math.sin(pp*Math.PI*5);
-  ctx.translate(w/2,h*.37);ctx.scale(pulse,pulse);ctx.translate(-w/2,-h*.37);
-  drawRevealHeart(ctx,w/2,h*.37,w*.075,accent,.94);
+  ctx.globalAlpha=cp;
+  drawRevealCollage(ctx,w,h,endingImages||[],gender,logoImg,babyName,musicCredit);
   ctx.restore();
 
-  if(pp>.16){
-    const a=videoSmoothstep(Math.min(1,(pp-.16)/.28));
-    const scale=.94+.06*a;
-    ctx.save();ctx.globalAlpha=a;ctx.translate(w/2,h*.52);ctx.scale(scale,scale);ctx.translate(-w/2,-h*.52);
-    ctx.textAlign='center';
-    ctx.fillStyle=deep;
-    ctx.font=`800 ${Math.round(w*.070)}px Arial, sans-serif`;
-    ctx.fillText(isGirl?videoText('BUDE TO HOLČIČKA ♡','IT’S A GIRL ♡'):videoText('BUDE TO CHLAPEČEK ♡','IT’S A BOY ♡'),w/2,h*.51);
-    if((babyName||'').trim()){
-      ctx.fillStyle='#65534A';
-      ctx.font=`600 ${Math.round(w*.052)}px Arial, sans-serif`;
-      ctx.fillText((babyName||'').trim(),w/2,h*.595);
-    }
-    ctx.restore();
-  }
-
-  // Několik drobných plovoucích srdíček, jen jako detail.
-  if(pp>.28){
-    const a=videoSmoothstep(Math.min(1,(pp-.28)/.32));
-    const pts=[[.22,.72,.018],[.34,.68,.012],[.67,.70,.015],[.79,.75,.019],[.57,.78,.011]];
-    pts.forEach((q,i)=>{
-      const floatY=Math.sin(pp*Math.PI*2+i)*h*.008;
-      drawRevealHeart(ctx,w*q[0],h*q[1]-floatY,w*q[2],accent,.22+.30*a);
-    });
-  }
-
-  if(musicCredit&&pp>.72){
-    ctx.save();ctx.globalAlpha=videoSmoothstep((pp-.72)/.18);
-    ctx.textAlign='center';ctx.fillStyle='#796B64';
-    ctx.font=`500 ${Math.round(w*.020)}px Arial, sans-serif`;
-    ctx.fillText(videoText('Hudba: ','Music: ')+musicCredit[0],w/2,h*.89);
-    if(musicCredit[1])ctx.fillText(musicCredit[1],w/2,h*.915);
-    ctx.restore();
+  if(cp<1){
+    ctx.globalAlpha=1-cp;
+    ctx.fillStyle=tint;ctx.fillRect(0,0,w,h);
+    ctx.globalAlpha=1;
   }
 }
 async function generateGenderRevealVideo(){
@@ -1871,11 +1739,24 @@ async function generateGenderRevealVideo(){
     if(userBitmaps.length<1)throw new Error('Nepodařilo se načíst žádnou fotografii pro odhalení');
 
     const detail=await loadRevealDetailImages();
-    bitmaps.push(detail.hand,detail.feet);
-    // Sekvence: ručička -> vlastní ultrazvuky/fotky -> nožičky.
-    const revealScenes=[detail.hand,...userBitmaps,detail.feet];
+    const collageAssets=await loadRevealCollageAssets();
+    window.__revealBootiesPink = collageAssets.pink;
+    window.__revealBootiesBlue = collageAssets.blue;
+    bitmaps.push(detail.hand,detail.feet,collageAssets.pink,collageAssets.blue);
 
-    const W=720,H=1280,FPS=30,FRAME=1/FPS,INTRO=2.8,INTRO_FADE=.7,PHOTO=2.45,FADE=.75,QUESTION=2.4,QFADE=.55,REVEAL=4.8;
+    // Jemné střídání detailů a screeningů:
+    // ručička -> screening 1 -> nožičky -> screening 2 -> případné další snímky.
+    const revealScenes=[detail.hand];
+    if(userBitmaps[0]) revealScenes.push(userBitmaps[0]);
+    revealScenes.push(detail.feet);
+    if(userBitmaps[1]) revealScenes.push(userBitmaps[1]);
+    if(userBitmaps.length>2) revealScenes.push(...userBitmaps.slice(2));
+
+    const endingImages = userBitmaps.length>=2
+      ? [userBitmaps[0],userBitmaps[1]]
+      : [userBitmaps[0],userBitmaps[0]];
+
+    const W=720,H=1280,FPS=30,FRAME=1/FPS,INTRO=2.4,INTRO_FADE=.6,PHOTO=2.05,FADE=.60,QUESTION=2.15,QFADE=.45,REVEAL=5.2;
     const photoStart=INTRO-INTRO_FADE,step=PHOTO-FADE,photoEnd=photoStart+(revealScenes.length-1)*step+PHOTO,questionStart=photoEnd-QFADE,revealStart=questionStart+QUESTION-QFADE,totalSec=revealStart+REVEAL,totalFrames=Math.ceil(totalSec*FPS);
     const canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;const ctx=canvas.getContext('2d',{alpha:false});if(!ctx)throw new Error('Canvas 2D není dostupný');
     const output=new Output({format:new Mp4OutputFormat(),target:new BufferTarget()});const videoSource=new CanvasSource(canvas,{codec:'avc',quality:new Quality({bitrate:4_000_000})});output.addVideoTrack(videoSource,{frameRate:FPS});
@@ -1891,8 +1772,8 @@ async function generateGenderRevealVideo(){
       else if(t<questionStart)drawRevealPhotoTimeline(ctx,revealScenes,W,H,t-photoStart,PHOTO,FADE);
       else if(t<photoEnd){const x=videoSmoothstep((t-questionStart)/QFADE);ctx.clearRect(0,0,W,H);ctx.save();ctx.globalAlpha=1-x;drawRevealPhotoTimeline(ctx,revealScenes,W,H,t-photoStart,PHOTO,FADE);ctx.restore();ctx.save();ctx.globalAlpha=x;drawRevealQuestion(ctx,W,H,0,logoImg);ctx.restore();}
       else if(t<revealStart)drawRevealQuestion(ctx,W,H,(t-questionStart)/QUESTION,logoImg);
-      else if(t<revealStart+QFADE){const x=videoSmoothstep((t-revealStart)/QFADE);ctx.clearRect(0,0,W,H);ctx.save();ctx.globalAlpha=1-x;drawRevealQuestion(ctx,W,H,1,logoImg);ctx.restore();ctx.save();ctx.globalAlpha=x;drawRevealFinal(ctx,W,H,0,memoryVideoState.revealGender,logoImg,data?.babyName||'',musicCredit);ctx.restore();}
-      else drawRevealFinal(ctx,W,H,(t-revealStart)/REVEAL,memoryVideoState.revealGender,logoImg,data?.babyName||'',musicCredit);
+      else if(t<revealStart+QFADE){const x=videoSmoothstep((t-revealStart)/QFADE);ctx.clearRect(0,0,W,H);ctx.save();ctx.globalAlpha=1-x;drawRevealQuestion(ctx,W,H,1,logoImg);ctx.restore();ctx.save();ctx.globalAlpha=x;drawRevealFinal(ctx,W,H,0,memoryVideoState.revealGender,logoImg,data?.babyName||'',musicCredit,endingImages);ctx.restore();}
+      else drawRevealFinal(ctx,W,H,(t-revealStart)/REVEAL,memoryVideoState.revealGender,logoImg,data?.babyName||'',musicCredit,endingImages);
       await videoSource.add(t,FRAME,{keyFrame:frame===0||frame%(FPS*2)===0});const pct=12+Math.round((frame+1)/totalFrames*84);progressFill.style.width=pct+'%';progressText.textContent=pct+' %';if(frame%12===0)await new Promise(r=>setTimeout(r,0));
     }
     videoSource.close();await audioWritePromise;status.textContent=videoText('Dokončuji MP4…','Finalising MP4…');progressFill.style.width='97%';progressText.textContent='97 %';await output.finalize();
