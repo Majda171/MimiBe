@@ -777,6 +777,38 @@ function translateDynamicText(t){
     .replace(/\(volitelné\)/gi,'(optional)')
     .replace(/\(volitelně\)/gi,'(optional)');
 }
+
+function forceMimiBeCzechCoreLabels(){
+  if(currentLang()!=='cs')return;
+
+  const navTexts={home:'Domů',calendar:'Kalendář',settings:'Nastavení'};
+  Object.entries(navTexts).forEach(([key,text])=>{
+    const btn=document.querySelector(`.bottom-nav [data-nav="${key}"]`);
+    const label=btn?.querySelector('span:last-child');
+    if(label)label.textContent=text;
+  });
+
+  const checklistBtn=document.querySelector('.bottom-nav [data-action="equipment"]');
+  const checklistLabel=checklistBtn?.querySelector('span:last-child');
+  if(checklistLabel)checklistLabel.textContent='Checklisty';
+
+  const memoryCard=document.querySelector('#createVideoFuture')?.closest('.video-maker-card');
+  if(memoryCard){
+    const s=memoryCard.querySelector('small'); if(s)s.textContent='Vzpomínkové video';
+    const h=memoryCard.querySelector('h3'); if(h)h.textContent='Vytvořit video ♡';
+    const p=memoryCard.querySelector('p'); if(p)p.textContent='MimiBe samo seřadí tvoje fotky, přidá jemné přechody a vytvoří hotové vzpomínkové video.';
+    const b=memoryCard.querySelector('#createVideoFuture'); if(b)b.textContent='Vytvořit video';
+  }
+
+  const revealCard=document.querySelector('#createGenderReveal')?.closest('.video-maker-card');
+  if(revealCard){
+    const s=revealCard.querySelector('small'); if(s)s.textContent='Bonusové video';
+    const h=revealCard.querySelector('h3'); if(h)h.textContent='Kluk nebo holka? ♡';
+    const p=revealCard.querySelector('p'); if(p)p.textContent='Vytvoř krátké odhalovací video z ultrazvuků a fotek a pošli překvapení rodině.';
+    const b=revealCard.querySelector('#createGenderReveal'); if(b)b.textContent='Vytvořit odhalení';
+  }
+}
+
 function localizeWholeApp(lang){
   lang=lang==='en'?'en':'cs';
   appLanguage=lang;
@@ -808,6 +840,7 @@ function localizeWholeApp(lang){
   });
   document.querySelectorAll('[data-set-language]').forEach(b=>b.classList.toggle('active',b.dataset.setLanguage===lang));
   localizeMimiBeBrand(lang);
+  if(lang==='cs')forceMimiBeCzechCoreLabels();
 }
 
 const _originalApplyLanguage=applyLanguage;
@@ -818,7 +851,7 @@ applyLanguage=function(lang){
 
 document.addEventListener('DOMContentLoaded',()=>{
   const lang=currentLang();
-  setTimeout(()=>localizeWholeApp(lang),100);
+  setTimeout(()=>{localizeWholeApp(lang);if(lang==='cs')forceMimiBeCzechCoreLabels();},100);
   const obs=new MutationObserver(()=>{
     clearTimeout(window.__mimiI18nTimer);
     window.__mimiI18nTimer=setTimeout(()=>localizeWholeApp(currentLang()),25);
@@ -1898,19 +1931,14 @@ function drawRevealCollage(ctx,w,h,images,gender,logoImg,babyName,musicCredit,bo
     ctx.font=`600 ${Math.round(w*.035)}px Georgia, serif`;
     ctx.fillText((babyName||'').trim(),w/2,h*.827);
   }
-
-  const bootie=isGirl?booties?.pink:booties?.blue;
-  if(bootie){
-    const bw=w*.23,bh=bw*.67;
-    ctx.save();ctx.globalAlpha=.97;
-    ctx.translate(w*.42,h*.885);ctx.rotate(-.08);
-    ctx.drawImage(bootie,-bw/2,-bh/2,bw,bh);
-    ctx.restore();
-    ctx.save();ctx.globalAlpha=.97;
-    ctx.translate(w*.58,h*.885);ctx.rotate(.08);
-    ctx.drawImage(bootie,-bw/2,-bh/2,bw,bh);
-    ctx.restore();
-  }
+  // Kreslené botičky vynechány; v další verzi je může nahradit realistická fotografie.
+  ctx.strokeStyle='rgba(200,165,119,.45)';
+  ctx.lineWidth=1.5;
+  ctx.beginPath();
+  ctx.moveTo(w*.35,h*.885);ctx.lineTo(w*.46,h*.885);
+  ctx.moveTo(w*.54,h*.885);ctx.lineTo(w*.65,h*.885);
+  ctx.stroke();
+  drawRevealHeart(ctx,w*.50,h*.885,w*.018,accent,.50);
 
   if(musicCredit){
     ctx.fillStyle='#8C7A70';

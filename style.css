@@ -1665,25 +1665,43 @@ body[data-theme="blue"] .nav-item.active{
 .memory-music-title-row strong{display:block;font-size:14px;margin-bottom:3px}
 .memory-music-title-row small{display:block;color:var(--muted);font-size:11px;line-height:1.35}
 .memory-music-options{display:grid;gap:7px;margin-top:12px}
-.memory-music-option{
+.memory-music-row{
   width:100%;
   display:grid;
-  grid-template-columns:34px minmax(0,1fr) 34px;
+  grid-template-columns:minmax(0,1fr) 38px;
   align-items:center;
-  gap:8px;
-  padding:9px 10px;
+  gap:6px;
   border:1px solid var(--line,#eadfd6);
   border-radius:14px;
   background:#fffdfb;
-  color:inherit;
-  font:inherit;
-  text-align:left;
+  overflow:hidden;
 }
-.memory-music-option.active{
+.memory-music-row:has(.memory-music-option[data-music-choice="none"]),
+.memory-music-row:has(.memory-music-option[data-music-choice="custom"]){
+  grid-template-columns:1fr;
+}
+.memory-music-row:has(.memory-music-option.active){
   border-color:var(--accent,#c7a177);
   background:var(--accent-soft,#f6ece2);
   box-shadow:0 0 0 1px color-mix(in srgb,var(--accent,#c7a177) 15%,transparent);
 }
+.memory-music-option{
+  width:100%;
+  min-width:0;
+  min-height:52px;
+  display:grid;
+  grid-template-columns:34px minmax(0,1fr);
+  align-items:center;
+  gap:8px;
+  padding:9px 10px;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  color:inherit;
+  font:inherit;
+  text-align:left;
+}
+.memory-music-option.active{background:transparent;box-shadow:none}
 .memory-music-icon{
   width:30px;height:30px;border-radius:50%;
   display:grid;place-items:center;
@@ -1695,11 +1713,18 @@ body[data-theme="blue"] .nav-item.active{
 .memory-music-copy b{font-size:13px;font-weight:700}
 .memory-music-copy small{font-size:10.5px;color:var(--muted)}
 .memory-music-preview{
-  width:30px;height:30px;border-radius:50%;
-  display:grid;place-items:center;
-  background:rgba(255,255,255,.8);
-  color:var(--accent,#c7a177);
-  font-size:11px;font-weight:800;
+  width:32px;height:32px;
+  margin-right:4px;
+  border:0;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  background:rgba(255,255,255,.86);
+  color:var(--accent-strong,#8B6446);
+  font-size:11px;
+  font-weight:800;
+  padding:0;
+  cursor:pointer;
 }
 .memory-custom-music{margin-top:9px}
 .memory-custom-music input{width:100%}

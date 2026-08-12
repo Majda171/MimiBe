@@ -259,64 +259,85 @@
               </div>
             </div>
 
-            <div class="memory-music-options" id="memoryMusicOptions">
-              <button type="button" class="memory-music-option active" data-music-choice="none" aria-pressed="true">
-                <span class="memory-music-icon">♡</span>
-                <span class="memory-music-copy"><b id="musicNoneTitle">Bez hudby</b><small id="musicNoneSub">Jen vzpomínky</small></span>
-              </button>
+                        <div class="memory-music-options" id="memoryMusicOptions">
+              <div class="memory-music-row active">
+                <button type="button" class="memory-music-option active" data-music-choice="none" aria-pressed="true">
+                  <span class="memory-music-icon">♡</span>
+                  <span class="memory-music-copy"><b id="musicNoneTitle">Bez hudby</b><small id="musicNoneSub">Jen vzpomínky</small></span>
+                </button>
+              </div>
 
-              <button type="button" class="memory-music-option" data-music-choice="happy" aria-pressed="false">
-                <span class="memory-music-icon">♫</span>
-                <span class="memory-music-copy"><b id="musicHappyTitle">Happy Days</b><small id="musicHappySub">Hina · radostná</small></span>
-                <button type="button" class="memory-music-preview" data-preview-music="happy" aria-label="Přehrát ukázku">▶</button>
-              </button>
+              <div class="memory-music-row">
+                <button type="button" class="memory-music-option" data-music-choice="happy" aria-pressed="false">
+                  <span class="memory-music-icon">♫</span>
+                  <span class="memory-music-copy"><b id="musicHappyTitle">Happy Days</b><small id="musicHappySub">Hina · radostná</small></span>
+                </button>
+                <button type="button" class="memory-music-preview" data-preview-music="happy" aria-label="Přehrát ukázku" aria-pressed="false">▶</button>
+              </div>
 
-              <button type="button" class="memory-music-option" data-music-choice="moonlight" aria-pressed="false">
-                <span class="memory-music-icon">☾</span>
-                <span class="memory-music-copy"><b id="musicMoonlightTitle">Moonlight</b><small id="musicMoonlightSub">Scott Buckley · snová</small></span>
-                <button type="button" class="memory-music-preview" data-preview-music="moonlight" aria-label="Přehrát ukázku">▶</button>
-              </button>
+              <div class="memory-music-row">
+                <button type="button" class="memory-music-option" data-music-choice="moonlight" aria-pressed="false">
+                  <span class="memory-music-icon">☾</span>
+                  <span class="memory-music-copy"><b id="musicMoonlightTitle">Moonlight</b><small id="musicMoonlightSub">Scott Buckley · snová</small></span>
+                </button>
+                <button type="button" class="memory-music-preview" data-preview-music="moonlight" aria-label="Přehrát ukázku" aria-pressed="false">▶</button>
+              </div>
 
-              <button type="button" class="memory-music-option" data-music-choice="west" aria-pressed="false">
-                <span class="memory-music-icon">♪</span>
-                <span class="memory-music-copy"><b id="musicWestTitle">West in Africa</b><small id="musicWestSub">John Bartmann · lehká</small></span>
-                <button type="button" class="memory-music-preview" data-preview-music="west" aria-label="Přehrát ukázku">▶</button>
-              </button>
+              <div class="memory-music-row">
+                <button type="button" class="memory-music-option" data-music-choice="west" aria-pressed="false">
+                  <span class="memory-music-icon">♪</span>
+                  <span class="memory-music-copy"><b id="musicWestTitle">West in Africa</b><small id="musicWestSub">John Bartmann · lehká</small></span>
+                </button>
+                <button type="button" class="memory-music-preview" data-preview-music="west" aria-label="Přehrát ukázku" aria-pressed="false">▶</button>
+              </div>
 
-              <button type="button" class="memory-music-option" data-music-choice="canon" aria-pressed="false">
-                <span class="memory-music-icon">♬</span>
-                <span class="memory-music-copy"><b id="musicCanonTitle">Canon in D Major</b><small id="musicCanonSub">Kevin MacLeod · slavnostní</small></span>
-                <button type="button" class="memory-music-preview" data-preview-music="canon" aria-label="Přehrát ukázku">▶</button>
-              </button>
+              <div class="memory-music-row">
+                <button type="button" class="memory-music-option" data-music-choice="canon" aria-pressed="false">
+                  <span class="memory-music-icon">♬</span>
+                  <span class="memory-music-copy"><b id="musicCanonTitle">Canon in D Major</b><small id="musicCanonSub">Kevin MacLeod · slavnostní</small></span>
+                </button>
+                <button type="button" class="memory-music-preview" data-preview-music="canon" aria-label="Přehrát ukázku" aria-pressed="false">▶</button>
+              </div>
 
-              <button type="button" class="memory-music-option" data-music-choice="guitar" aria-pressed="false">
-                <span class="memory-music-icon">♫</span>
-                <span class="memory-music-copy"><b id="musicGuitarTitle">Guitar Gentle</b><small id="musicGuitarSub">PeriTune · jemná kytara</small></span>
-                <button type="button" class="memory-music-preview" data-preview-music="guitar" aria-label="Přehrát ukázku">▶</button>
-              </button>
+              <div class="memory-music-row">
+                <button type="button" class="memory-music-option" data-music-choice="guitar" aria-pressed="false">
+                  <span class="memory-music-icon">♫</span>
+                  <span class="memory-music-copy"><b id="musicGuitarTitle">Guitar Gentle</b><small id="musicGuitarSub">PeriTune · jemná kytara</small></span>
+                </button>
+                <button type="button" class="memory-music-preview" data-preview-music="guitar" aria-label="Přehrát ukázku" aria-pressed="false">▶</button>
+              </div>
 
-              <button type="button" class="memory-music-option" data-music-choice="glow" aria-pressed="false">
-                <span class="memory-music-icon">✦</span>
-                <span class="memory-music-copy"><b id="musicGlowTitle">Glow</b><small id="musicGlowSub">Scott Buckley · hřejivá</small></span>
-                <button type="button" class="memory-music-preview" data-preview-music="glow" aria-label="Přehrát ukázku">▶</button>
-              </button>
+              <div class="memory-music-row">
+                <button type="button" class="memory-music-option" data-music-choice="glow" aria-pressed="false">
+                  <span class="memory-music-icon">✦</span>
+                  <span class="memory-music-copy"><b id="musicGlowTitle">Glow</b><small id="musicGlowSub">Scott Buckley · hřejivá</small></span>
+                </button>
+                <button type="button" class="memory-music-preview" data-preview-music="glow" aria-label="Přehrát ukázku" aria-pressed="false">▶</button>
+              </div>
 
-              <button type="button" class="memory-music-option" data-music-choice="along" aria-pressed="false">
-                <span class="memory-music-icon">♪</span>
-                <span class="memory-music-copy"><b id="musicAlongTitle">Along The Way</b><small id="musicAlongSub">Alex-Productions · pohodová</small></span>
-                <button type="button" class="memory-music-preview" data-preview-music="along" aria-label="Přehrát ukázku">▶</button>
-              </button>
+              <div class="memory-music-row">
+                <button type="button" class="memory-music-option" data-music-choice="along" aria-pressed="false">
+                  <span class="memory-music-icon">♪</span>
+                  <span class="memory-music-copy"><b id="musicAlongTitle">Along The Way</b><small id="musicAlongSub">Alex-Productions · pohodová</small></span>
+                </button>
+                <button type="button" class="memory-music-preview" data-preview-music="along" aria-label="Přehrát ukázku" aria-pressed="false">▶</button>
+              </div>
 
-              <button type="button" class="memory-music-option" data-music-choice="helice" aria-pressed="false">
-                <span class="memory-music-icon">♡</span>
-                <span class="memory-music-copy"><b id="musicHeliceTitle">Hélice</b><small id="musicHeliceSub">Monplaisir · nostalgická</small></span>
-                <button type="button" class="memory-music-preview" data-preview-music="helice" aria-label="Přehrát ukázku">▶</button>
-              </button>
+              <div class="memory-music-row">
+                <button type="button" class="memory-music-option" data-music-choice="helice" aria-pressed="false">
+                  <span class="memory-music-icon">♡</span>
+                  <span class="memory-music-copy"><b id="musicHeliceTitle">Hélice</b><small id="musicHeliceSub">Monplaisir · nostalgická</small></span>
+                </button>
+                <button type="button" class="memory-music-preview" data-preview-music="helice" aria-label="Přehrát ukázku" aria-pressed="false">▶</button>
+              </div>
 
-              <button type="button" class="memory-music-option" data-music-choice="custom" aria-pressed="false">
-                <span class="memory-music-icon">＋</span>
-                <span class="memory-music-copy"><b id="musicCustomTitle">Moje hudba</b><small id="musicCustomSub">Vyber skladbu z telefonu</small></span>
-              </button>
+              <div class="memory-music-row">
+                <button type="button" class="memory-music-option" data-music-choice="custom" aria-pressed="false">
+                  <span class="memory-music-icon">＋</span>
+                  <span class="memory-music-copy"><b id="musicCustomTitle">Moje hudba</b><small id="musicCustomSub">Vyber skladbu z telefonu</small></span>
+                </button>
+              </div>
+
             </div>
 
             <div class="memory-custom-music hidden" id="memoryCustomMusicWrap">
