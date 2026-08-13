@@ -7,20 +7,40 @@ const store = {
 };
 
 const defaults = {
-  momName: '', dueDate: '', babyName: '', babyGender: 'neutral', theme: 'neutral', events: [], notes: [],
+  momName: '', dueDate: '', birthDate: '', babyName: '', babyGender: 'neutral', theme: 'neutral', events: [], notes: [],
   equipment: ['Postýlka','Kočárek','Autosedačka','Plenky','Body','Overaly'],
   hospital: ['Doklady','Přezůvky','Noční košile','Hygiena','Oblečení pro miminko'],
-  equipmentDone: [], hospitalDone: [], customChecklists: [], equipmentBudget: null, equipmentPrices: [], currency: 'CZK'
+  equipmentDone: [], hospitalDone: [], customChecklists: [],
+  equipmentBudget: null, equipmentPrices: [], equipmentBudgetAsked: false,
+  hospitalBudget: null, hospitalPrices: [], hospitalBudgetAsked: false,
+  milestoneNotified: [], currency: 'CZK'
 };
 let data = {...defaults, ...store.get('pregnancyPlanner', {})};
 if(!Array.isArray(data.customChecklists)) data.customChecklists=[];
-['events','notes','equipment','hospital','equipmentDone','hospitalDone'].forEach(k=>{if(!Array.isArray(data[k])) data[k]=JSON.parse(JSON.stringify(defaults[k]));});
-if(!Array.isArray(data.equipmentPrices)) data.equipmentPrices=[];
-data.equipmentPrices=data.equipment.map((_,i)=>{ const v=Number(data.equipmentPrices[i]); return Number.isFinite(v)&&v>=0?v:null; });
-{ const b=Number(data.equipmentBudget); data.equipmentBudget=Number.isFinite(b)&&b>0?b:null; }
+['events','notes','equipment','hospital','equipmentDone','hospitalDone','milestoneNotified'].forEach(k=>{if(!Array.isArray(data[k])) data[k]=JSON.parse(JSON.stringify(defaults[k]));});
+function normalisePrices(items,prices){
+  const src=Array.isArray(prices)?prices:[];
+  return items.map((_,i)=>{ const v=Number(src[i]); return Number.isFinite(v)&&v>=0?v:null; });
+}
+data.equipmentPrices=normalisePrices(data.equipment,data.equipmentPrices);
+data.hospitalPrices=normalisePrices(data.hospital,data.hospitalPrices);
+['equipmentBudget','hospitalBudget'].forEach(k=>{const b=Number(data[k]);data[k]=Number.isFinite(b)&&b>0?b:null;});
+data.equipmentBudgetAsked=Boolean(data.equipmentBudgetAsked || data.equipmentBudget);
+data.hospitalBudgetAsked=Boolean(data.hospitalBudgetAsked || data.hospitalBudget);
+if(typeof data.birthDate!=='string') data.birthDate='';
 if(!['CZK','EUR','USD','GBP'].includes(data.currency)) data.currency='CZK';
 if(!['girl','boy','neutral'].includes(data.babyGender)) data.babyGender='neutral';
-data.customChecklists=data.customChecklists.filter(c=>c&&typeof c==='object').map(c=>({id:String(c.id||('c'+Date.now().toString(36)+Math.random().toString(36).slice(2,6))),name:String(c.name||'Checklist'),items:Array.isArray(c.items)?c.items:[],done:Array.isArray(c.done)?c.done:[]}));
+data.customChecklists=data.customChecklists.filter(c=>c&&typeof c==='object').map(c=>{
+  const items=Array.isArray(c.items)?c.items:[];
+  const budget=Number(c.budget);
+  return {
+    id:String(c.id||('c'+Date.now().toString(36)+Math.random().toString(36).slice(2,6))),
+    name:String(c.name||'Checklist'), items, done:Array.isArray(c.done)?c.done:[],
+    budget:Number.isFinite(budget)&&budget>0?budget:null,
+    prices:normalisePrices(items,c.prices),
+    budgetAsked:Boolean(c.budgetAsked || (Number.isFinite(budget)&&budget>0))
+  };
+});
 let currentChecklist = 'equipment';
 
 function persist(){ store.set('pregnancyPlanner', data); }
@@ -28,12 +48,86 @@ function fmtDate(date){ return new Intl.DateTimeFormat('cs-CZ',{day:'numeric',mo
 function monthShort(date){ return new Intl.DateTimeFormat('cs-CZ',{month:'short'}).format(date).replace('.','').toUpperCase(); }
 function daysBetween(a,b){ return Math.ceil((b-a)/(1000*60*60*24)); }
 
+function parseLocalDate(value){
+  if(!value)return null;
+  const d=new Date(value+'T00:00:00');
+  return Number.isNaN(d.getTime())?null:d;
+}
+function dayDiffFloor(a,b){return Math.floor((b-a)/(1000*60*60*24));}
+function clampDay(year,month,day){return Math.min(day,new Date(year,month+1,0).getDate());}
+function anniversaryDate(base,year,month=base.getMonth()){
+  return new Date(year,month,clampDay(year,month,base.getDate()));
+}
+function fullMonthsSince(base,today){
+  let months=(today.getFullYear()-base.getFullYear())*12+(today.getMonth()-base.getMonth());
+  const anchor=anniversaryDate(base,today.getFullYear(),today.getMonth());
+  if(today<anchor)months--;
+  return Math.max(0,months);
+}
+function fullYearsSince(base,today){
+  let years=today.getFullYear()-base.getFullYear();
+  if(today<anniversaryDate(base,today.getFullYear(),base.getMonth()))years--;
+  return Math.max(0,years);
+}
+function czNumberWord(n,one,twoFour,many){return n===1?one:(n>=2&&n<=4?twoFour:many);}
+function babyAgePrimary(base,today){
+  const days=Math.max(0,dayDiffFloor(base,today));
+  const months=fullMonthsSince(base,today);
+  const years=fullYearsSince(base,today);
+  if(days<14)return `${days} ${czNumberWord(days,'den','dny','dní')}`;
+  if(months<1){const w=Math.floor(days/7);return `${w} ${czNumberWord(w,'týden','týdny','týdnů')}`;}
+  if(years<1)return `${months} ${czNumberWord(months,'měsíc','měsíce','měsíců')}`;
+  const rem=months-years*12;
+  if(!rem)return `${years} ${czNumberWord(years,'rok','roky','let')}`;
+  return `${years} ${czNumberWord(years,'rok','roky','let')} a ${rem} ${czNumberWord(rem,'měsíc','měsíce','měsíců')}`;
+}
+function postpartumStartDate(today){
+  const birth=parseLocalDate(data.birthDate);
+  if(birth && birth<=today)return {date:birth,actual:true};
+  const due=parseLocalDate(data.dueDate);
+  if(due && today>due)return {date:due,actual:false};
+  return null;
+}
+function setHeroMode(postpartum){
+  const hero=document.querySelector('.hero');
+  hero?.classList.toggle('postpartum-mode',Boolean(postpartum));
+}
 function updatePregnancy(){
   const today = new Date(); today.setHours(0,0,0,0);
+  const postpartum=postpartumStartDate(today);
+  if(postpartum){
+    setHeroMode(true);
+    const born=postpartum.date;
+    const ageDays=Math.max(0,dayDiffFloor(born,today));
+    const weeks=Math.floor(ageDays/7), extraDays=ageDays%7;
+    const firstYearPct=Math.min(100,Math.round(ageDays/365*100));
+    $('#heroPrimaryLabel').textContent=i18nMsg('Miminko má','Baby is');
+    $('#weekNumber').textContent=babyAgePrimary(born,today);
+    $('#heroPrimarySuffix').textContent='';
+    $('#weekDay').textContent=ageDays<365 ? `${weeks} ${i18nMsg('týdnů','weeks')} + ${extraDays} ${i18nMsg('dní','days')}` : i18nMsg('Roste každý den ♡','Growing every day ♡');
+    $('#heroSecondaryLabel').textContent=i18nMsg('Od narození uplynulo','Since birth');
+    $('#daysLeft').textContent=ageDays;
+    $('#daysUnit').textContent=' '+i18nMsg('dní','days');
+    $('#heroDateLabelText').textContent=postpartum.actual?i18nMsg('Datum narození:','Date of birth:'):i18nMsg('Počítáno od termínu:','Counting from due date:');
+    $('#dueDateLabel').textContent=fmtDate(born);
+    $('#progressPercent').textContent=firstYearPct+' %';
+    $('#progressContext').textContent=i18nMsg('prvního roku','of first year');
+    $('#progressRing').style.background=`conic-gradient(var(--accent) ${firstYearPct*3.6}deg,var(--soft) ${firstYearPct*3.6}deg)`;
+    if(typeof updateStandalonePregnancyProgress==='function') updateStandalonePregnancyProgress();
+    return;
+  }
+  setHeroMode(false);
+  $('#heroPrimaryLabel').textContent=i18nMsg('Jsi ve',"You're in");
+  $('#heroPrimarySuffix').textContent=' '+i18nMsg('týdnu','week');
+  $('#heroSecondaryLabel').textContent=i18nMsg('Do termínu zbývá','Until your due date');
+  $('#daysUnit').textContent=' '+i18nMsg('dní','days');
+  $('#heroDateLabelText').textContent=i18nMsg('Termín porodu:','Due date:');
+  $('#progressContext').textContent=i18nMsg('těhotenství','pregnancy');
   if(!data.dueDate){
     $('#weekNumber').textContent='—'; $('#weekDay').textContent='—'; $('#daysLeft').textContent='—';
-    $('#dueDateLabel').textContent='nastav termín'; $('#progressPercent').textContent='0 %';
+    $('#dueDateLabel').textContent=i18nMsg('nastav termín','set due date'); $('#progressPercent').textContent='0 %';
     $('#progressRing').style.background='conic-gradient(var(--accent) 0deg,var(--soft) 0deg)';
+    if(typeof updateStandalonePregnancyProgress==='function') updateStandalonePregnancyProgress();
     return;
   }
   const due = new Date(data.dueDate+'T00:00:00');
@@ -72,16 +166,47 @@ window.removeNote=removeNote;
 function escapeHtml(str=''){ return str.replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m])); }
 
 function getChecklistModel(key){
-  if(key==='equipment') return {name:'Výbavička', items:data.equipment, done:data.equipmentDone, builtin:true};
-  if(key==='hospital') return {name:'Do porodnice', items:data.hospital, done:data.hospitalDone, builtin:true};
+  if(key==='equipment') return {key,name:'Výbavička', items:data.equipment, done:data.equipmentDone, builtin:true};
+  if(key==='hospital') return {key,name:'Do porodnice', items:data.hospital, done:data.hospitalDone, builtin:true};
   const id=key.replace('custom:','');
   const c=data.customChecklists.find(x=>x.id===id);
-  return c ? {name:c.name, items:c.items, done:c.done, builtin:false, raw:c} : null;
+  return c ? {key,name:c.name, items:c.items, done:c.done, builtin:false, raw:c} : null;
 }
 function setChecklistDone(key, done){
   if(key==='equipment') data.equipmentDone=done;
   else if(key==='hospital') data.hospitalDone=done;
   else { const m=getChecklistModel(key); if(m) m.raw.done=done; }
+}
+function getChecklistPrices(key){
+  if(key==='equipment')return data.equipmentPrices;
+  if(key==='hospital')return data.hospitalPrices;
+  const m=getChecklistModel(key);return m?.raw?.prices||[];
+}
+function getChecklistBudget(key){
+  if(key==='equipment')return Number(data.equipmentBudget)||0;
+  if(key==='hospital')return Number(data.hospitalBudget)||0;
+  const m=getChecklistModel(key);return Number(m?.raw?.budget)||0;
+}
+function setChecklistBudget(key,value){
+  const clean=Number(value)>0?Number(value):null;
+  if(key==='equipment')data.equipmentBudget=clean;
+  else if(key==='hospital')data.hospitalBudget=clean;
+  else{const m=getChecklistModel(key);if(m)m.raw.budget=clean;}
+}
+function checklistBudgetAsked(key){
+  if(key==='equipment')return Boolean(data.equipmentBudgetAsked);
+  if(key==='hospital')return Boolean(data.hospitalBudgetAsked);
+  const m=getChecklistModel(key);return Boolean(m?.raw?.budgetAsked);
+}
+function setChecklistBudgetAsked(key,value=true){
+  if(key==='equipment')data.equipmentBudgetAsked=Boolean(value);
+  else if(key==='hospital')data.hospitalBudgetAsked=Boolean(value);
+  else{const m=getChecklistModel(key);if(m)m.raw.budgetAsked=Boolean(value);}
+}
+function checklistSpent(key){
+  const m=getChecklistModel(key);if(!m)return 0;
+  const prices=getChecklistPrices(key);
+  return m.done.reduce((sum,i)=>sum+(Number(prices[i])||0),0);
 }
 function updateChecklistSummary(){
   [['equipment','equipmentCount','equipmentBar'],['hospital','hospitalCount','hospitalBar']].forEach(([key,countId,barId])=>{
@@ -101,13 +226,14 @@ function renderChecklistSwitcher(){
   const host=$('#checklistSwitcher'); if(!host) return;
   const options=[{key:'equipment',name:'Výbavička'},{key:'hospital',name:'Do porodnice'},...data.customChecklists.map(c=>({key:'custom:'+c.id,name:c.name}))];
   host.innerHTML=options.map(o=>`<button type="button" data-switch-checklist="${o.key}" class="${o.key===currentChecklist?'active':''}">${escapeHtml(o.name)}</button>`).join('');
-  $$('[data-switch-checklist]').forEach(b=>b.addEventListener('click',()=>{currentChecklist=b.dataset.switchChecklist; renderChecklistDialog();}));
+  $$('[data-switch-checklist]').forEach(b=>b.addEventListener('click',()=>{currentChecklist=b.dataset.switchChecklist; renderChecklistDialog(); setTimeout(()=>maybeAskChecklistBudget(currentChecklist),0);}));
 }
 function openChecklist(key){
   currentChecklist=key;
   if(!getChecklistModel(key)) currentChecklist='equipment';
   renderChecklistDialog();
   $('#checklistDialog').showModal();
+  setTimeout(()=>maybeAskChecklistBudget(currentChecklist),50);
 }
 function renderChecklistDialog(){
   const model=getChecklistModel(currentChecklist); if(!model) return;
@@ -120,44 +246,41 @@ function renderChecklistDialog(){
     $('#checklistSwitcher').insertAdjacentElement('afterend',prog);
   }
   prog.innerHTML=`<div class="checklist-dialog-progress-head"><span>${i18nMsg('Splněno','Completed')}</span><strong>${completed} / ${total}</strong></div><div class="bar"><i style="width:${pct}%"></i></div>`;
-  renderEquipmentBudgetPanel();
+  renderChecklistBudgetPanel();
   $('#deleteCustomChecklist').hidden=model.builtin;
+  const prices=getChecklistPrices(currentChecklist);
   $('#checklistItems').innerHTML=model.items.map((item,i)=>{
     const isDone=model.done.includes(i);
-    if(currentChecklist==='equipment'){
-      return `<div class="checklist-item equipment-item">
-        <div class="equipment-item-left">
-          <label class="equipment-check-label"><input type="checkbox" data-check="${i}" ${isDone?'checked':''}><span class="equipment-item-name">${escapeHtml(item)}</span></label>
-        </div>
-        <div class="equipment-item-right">
-          <label class="equipment-price-wrap"><span>${i18nMsg('Cena','Price')}</span><span class="equipment-price-input"><input type="number" inputmode="decimal" min="0" step="1" data-equipment-price="${i}" value="${data.equipmentPrices[i] ?? ''}" placeholder="0"><em>${currencySymbol()}</em></span></label>
-          <button class="delete-checklist-item equipment-delete" data-delete-check="${i}">${i18nMsg('Smazat','Delete')}</button>
-        </div>
-      </div>`;
-    }
-    return `<div class="checklist-item"><div class="checklist-item-main"><label><input type="checkbox" data-check="${i}" ${isDone?'checked':''}><span>${escapeHtml(item)}</span></label><button class="delete-checklist-item checklist-delete-text" data-delete-check="${i}">${i18nMsg('Smazat','Delete')}</button></div></div>`;
+    return `<div class="checklist-item equipment-item">
+      <div class="equipment-item-left">
+        <label class="equipment-check-label"><input type="checkbox" data-check="${i}" ${isDone?'checked':''}><span class="equipment-item-name">${escapeHtml(item)}</span></label>
+      </div>
+      <div class="equipment-item-right">
+        <label class="equipment-price-wrap"><span>${i18nMsg('Cena','Price')}</span><span class="equipment-price-input"><input type="number" inputmode="decimal" min="0" step="1" data-checklist-price="${i}" value="${prices[i] ?? ''}" placeholder="0"><em>${currencySymbol()}</em></span></label>
+        <button class="delete-checklist-item equipment-delete" data-delete-check="${i}">${i18nMsg('Smazat','Delete')}</button>
+      </div>
+    </div>`;
   }).join('')||'<div class="muted">Zatím prázdné.</div>';
   $$('[data-check]').forEach(el=>el.addEventListener('change',()=>{
     const i=+el.dataset.check; let d=[...getChecklistModel(currentChecklist).done];
     if(el.checked&&!d.includes(i)) d.push(i); if(!el.checked) d=d.filter(x=>x!==i);
-    setChecklistDone(currentChecklist,d); persist(); updateChecklistSummary();
-    if(currentChecklist==='equipment') renderEquipmentBudgetPanel();
+    setChecklistDone(currentChecklist,d); persist(); updateChecklistSummary();renderChecklistBudgetPanel();
   }));
   $$('[data-delete-check]').forEach(btn=>btn.addEventListener('click',()=>{
     const i=+btn.dataset.deleteCheck;
     if(!confirm(i18nMsg('Smazat tuto položku z checklistu?','Delete this checklist item?'))) return;
     const m=getChecklistModel(currentChecklist); m.items.splice(i,1);
     setChecklistDone(currentChecklist,m.done.filter(x=>x!==i).map(x=>x>i?x-1:x));
-    if(currentChecklist==='equipment') data.equipmentPrices.splice(i,1);
+    getChecklistPrices(currentChecklist).splice(i,1);
     persist(); renderChecklistDialog(); updateChecklistSummary();
   }));
-  $$('[data-equipment-price]').forEach(input=>{
+  $$('[data-checklist-price]').forEach(input=>{
     const updatePrice=()=>{
-      const i=+input.dataset.equipmentPrice;
+      const i=+input.dataset.checklistPrice;
       const cleaned=String(input.value).replace(/\s/g,'').replace(',','.');
       const value=cleaned===''?null:Math.max(0,Number(cleaned));
-      data.equipmentPrices[i]=Number.isFinite(value)?value:null;
-      renderEquipmentBudgetPanel();
+      getChecklistPrices(currentChecklist)[i]=Number.isFinite(value)?value:null;
+      renderChecklistBudgetPanel();
     };
     input.addEventListener('input',updatePrice);
     input.addEventListener('change',()=>{updatePrice();persist();});
@@ -176,30 +299,27 @@ function formatMoney(value){
   const locale=currentLang()==='en' ? (currency==='USD'?'en-US':currency==='GBP'?'en-GB':'en-IE') : 'cs-CZ';
   return new Intl.NumberFormat(locale,{style:'currency',currency,maximumFractionDigits:0}).format(Number(value)||0);
 }
-function equipmentSpent(){
-  return data.equipmentDone.reduce((sum,i)=>sum+(Number(data.equipmentPrices[i])||0),0);
-}
-function renderEquipmentBudgetPanel(){
+function renderChecklistBudgetPanel(){
   let panel=$('#equipmentBudgetPanel');
-  if(currentChecklist!=='equipment'){ if(panel) panel.remove(); return; }
   if(!panel){
     panel=document.createElement('section');
     panel.id='equipmentBudgetPanel';
     panel.className='equipment-budget-panel';
     $('#checklistDialogProgress').insertAdjacentElement('afterend',panel);
   }
-  const budget=Number(data.equipmentBudget)||0;
+  const model=getChecklistModel(currentChecklist);if(!model)return;
+  const budget=getChecklistBudget(currentChecklist);
   if(!budget){
-    panel.innerHTML=`<button type="button" class="equipment-budget-start" id="setEquipmentBudgetBtn">＋ ${i18nMsg('Nastavit rozpočet na výbavičku','Set an essentials budget')}</button>`;
+    panel.innerHTML=`<button type="button" class="equipment-budget-start" id="setEquipmentBudgetBtn">＋ ${i18nMsg('Nastavit rozpočet','Set a budget')}</button>`;
   }else{
-    const spent=equipmentSpent();
+    const spent=checklistSpent(currentChecklist);
     const remaining=budget-spent;
     const rawPct=budget?spent/budget*100:0;
     const pct=Math.min(100,Math.max(0,rawPct));
     const shownPct=Math.round(rawPct);
     panel.innerHTML=`
       <div class="equipment-budget-head">
-        <div><span>${i18nMsg('Rozpočet na výbavičku','Essentials budget')}</span><strong>${formatMoney(budget)}</strong></div>
+        <div><span>${i18nMsg('Rozpočet','Budget')} · ${escapeHtml(model.name)}</span><strong>${formatMoney(budget)}</strong></div>
         <button type="button" id="editEquipmentBudgetBtn">${i18nMsg('Upravit','Edit')}</button>
       </div>
       <div class="equipment-budget-overview">
@@ -209,17 +329,25 @@ function renderEquipmentBudgetPanel(){
       </div>
       <div class="equipment-budget-note">${i18nMsg('Do rozpočtu se počítají pouze položky označené jako pořízené.','Only items marked as purchased count toward the budget.')}</div>`;
   }
-  $('#setEquipmentBudgetBtn')?.addEventListener('click',askEquipmentBudget);
-  $('#editEquipmentBudgetBtn')?.addEventListener('click',askEquipmentBudget);
+  $('#setEquipmentBudgetBtn')?.addEventListener('click',()=>askChecklistBudget(currentChecklist));
+  $('#editEquipmentBudgetBtn')?.addEventListener('click',()=>askChecklistBudget(currentChecklist));
 }
-function askEquipmentBudget(){
-  const current=data.equipmentBudget?String(data.equipmentBudget):'';
-  const raw=prompt(i18nMsg('Zadej celkový rozpočet na výbavičku v '+getCurrency()+'. Pro vypnutí zadej 0.','Enter your total essentials budget in '+getCurrency()+'. Enter 0 to turn it off.'),current);
+function askChecklistBudget(key=currentChecklist){
+  const model=getChecklistModel(key);if(!model)return;
+  const current=getChecklistBudget(key)?String(getChecklistBudget(key)):'';
+  const raw=prompt(i18nMsg('Zadej celkový rozpočet pro checklist „'+model.name+'“ v '+getCurrency()+'. Pro vypnutí zadej 0.','Enter the total budget for “'+model.name+'” in '+getCurrency()+'. Enter 0 to turn it off.'),current);
   if(raw===null) return;
   const cleaned=String(raw).replace(/\s/g,'').replace(',','.');
   const value=Number(cleaned);
   if(!Number.isFinite(value)||value<0){ alert(i18nMsg('Zadej prosím platnou částku.','Please enter a valid amount.')); return; }
-  data.equipmentBudget=value>0?value:null; persist(); renderEquipmentBudgetPanel();
+  setChecklistBudget(key,value);setChecklistBudgetAsked(key,true);persist();renderChecklistBudgetPanel();
+}
+function maybeAskChecklistBudget(key){
+  if(checklistBudgetAsked(key))return;
+  const model=getChecklistModel(key);if(!model)return;
+  setChecklistBudgetAsked(key,true);persist();
+  const yes=confirm(i18nMsg('Chceš si pro checklist „'+model.name+'“ nastavit rozpočet?','Would you like to set a budget for “'+model.name+'”?'));
+  if(yes)askChecklistBudget(key);
 }
 
 function applyTheme(){
@@ -271,7 +399,7 @@ document.querySelectorAll('.currency-option').forEach(btn=>{
     data.currency=['CZK','EUR','USD','GBP'].includes(btn.dataset.currency)?btn.dataset.currency:'CZK';
     persist();
     refreshCurrencyOptions();
-    if(currentChecklist==='equipment') renderChecklistDialog();
+    renderChecklistDialog();
   });
 });
 refreshCurrencyOptions();
@@ -296,8 +424,9 @@ $('#saveSettings')?.addEventListener('click',()=>{
   data.babyName=$('#babyNameInput').value.trim();
   data.babyGender=['girl','boy','neutral'].includes(data.babyGender)?data.babyGender:'neutral';
   data.dueDate=$('#dueDateInput').value;
+  data.birthDate=$('#birthDateInput')?.value||'';
   data.theme=$('#themeSelect').value;
-  persist();applyTheme();renderMomName();renderBabyName();updatePregnancy();updateStandalonePregnancyProgress();nav('home');
+  persist();applyTheme();renderMomName();renderBabyName();updatePregnancy();updateStandalonePregnancyProgress();checkBabyMilestones();maybeRequestMilestonePermission();nav('home');
 });
 $('#deleteProfile')?.addEventListener('click',async()=>{
   const en=(localStorage.getItem('pregnancyPlannerLanguage')==='en');
@@ -316,7 +445,7 @@ $('#createChecklistBtn')?.addEventListener('click',()=>{
   const name=prompt(i18nMsg('Jak se má nový checklist jmenovat?','What should the new checklist be called?'))?.trim();
   if(!name) return;
   const id='c'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-  data.customChecklists.push({id,name,items:[],done:[]}); persist(); updateChecklistSummary(); openChecklist('custom:'+id);
+  data.customChecklists.push({id,name,items:[],done:[],budget:null,prices:[],budgetAsked:false}); persist(); updateChecklistSummary(); openChecklist('custom:'+id);
 });
 $('#deleteCustomChecklist')?.addEventListener('click',()=>{
   const m=getChecklistModel(currentChecklist); if(!m || m.builtin) return;
@@ -326,7 +455,7 @@ $('#deleteCustomChecklist')?.addEventListener('click',()=>{
 $('#closeDialog').addEventListener('click',()=>$('#checklistDialog').close());
 $('#addChecklistItem').addEventListener('click',()=>{
   const input=$('#newChecklistItem'); const text=input.value.trim(); if(!text)return;
-  const m=getChecklistModel(currentChecklist); if(!m)return; m.items.push(text); if(currentChecklist==='equipment') data.equipmentPrices.push(null); input.value=''; persist(); renderChecklistDialog(); updateChecklistSummary();
+  const m=getChecklistModel(currentChecklist); if(!m)return; m.items.push(text); getChecklistPrices(currentChecklist).push(null); input.value=''; persist(); renderChecklistDialog(); updateChecklistSummary();
 });
 
 function renderBabyName(){
@@ -343,6 +472,64 @@ function renderToday(){
   $('#namedayLabel').textContent=lang==='en'
     ? (name ? 'Czech name day: '+name : '')
     : ('Svátek dnes: '+(name||'—'));
+}
+
+function sameLocalDay(a,b){return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();}
+function addCalendarMonths(base,months){
+  const total=base.getFullYear()*12+base.getMonth()+months;
+  const year=Math.floor(total/12), month=((total%12)+12)%12;
+  return new Date(year,month,clampDay(year,month,base.getDate()));
+}
+function milestoneForToday(){
+  const birth=parseLocalDate(data.birthDate);if(!birth)return null;
+  const today=new Date();today.setHours(0,0,0,0);if(today<birth)return null;
+  for(let m=1;m<=11;m++){
+    const target=addCalendarMonths(birth,m);
+    if(sameLocalDay(target,today))return {type:'month',number:m,key:`month-${m}-${today.getFullYear()}`};
+  }
+  const birthday=anniversaryDate(birth,today.getFullYear(),birth.getMonth());
+  const age=today.getFullYear()-birth.getFullYear();
+  if(age>=1&&sameLocalDay(birthday,today))return {type:'birthday',number:age,key:`birthday-${age}`};
+  return null;
+}
+function milestoneCopy(m){
+  const name=(data.babyName||i18nMsg('Miminko','Baby')).trim();
+  if(m.type==='month'){
+    const unit=czNumberWord(m.number,'měsíc','měsíce','měsíců');
+    const pronoun=data.babyGender==='girl'?'ji':data.babyGender==='boy'?'ho':'miminko';
+    return {title:`${name} má dnes ${m.number} ${unit} ♡`,body:`Nezapomeň ${pronoun} dnes vyfotit. 📸`,button:i18nMsg('Přidat fotku','Add photo')};
+  }
+  return {title:`${name} má dnes ${m.number}. narozeniny! 🎂`,body:i18nMsg('Nezapomeň zachytit dnešní narozeninovou vzpomínku. ♡','Don’t forget to capture today’s birthday memory. ♡'),button:i18nMsg('Přidat fotku','Add photo')};
+}
+function renderMilestoneCard(m){
+  let card=document.getElementById('babyMilestoneCard');
+  if(!m){card?.remove();return;}
+  const copy=milestoneCopy(m);
+  if(!card){
+    card=document.createElement('section');card.id='babyMilestoneCard';card.className='card baby-milestone-card';
+    document.querySelector('.hero')?.insertAdjacentElement('afterend',card);
+  }
+  card.innerHTML=`<div class="baby-milestone-icon">♡</div><div class="baby-milestone-copy"><small>${i18nMsg('Dnešní milník','Today’s milestone')}</small><strong>${escapeHtml(copy.title)}</strong><span>${escapeHtml(copy.body)}</span></div><button type="button" id="milestoneAddPhoto">${escapeHtml(copy.button)}</button>`;
+  $('#milestoneAddPhoto')?.addEventListener('click',()=>nav('photos'));
+}
+async function showMilestoneSystemNotification(m){
+  if(!m || typeof Notification==='undefined' || Notification.permission!=='granted')return;
+  if(data.milestoneNotified.includes(m.key))return;
+  const copy=milestoneCopy(m);
+  try{
+    if('serviceWorker' in navigator){
+      const reg=await navigator.serviceWorker.ready;
+      await reg.showNotification(copy.title,{body:copy.body,icon:'./pwa-icons/icon-192.png',badge:'./pwa-icons/icon-192.png',tag:'mimibe-'+m.key,data:{url:'./'}});
+    }else new Notification(copy.title,{body:copy.body,icon:'./pwa-icons/icon-192.png'});
+    data.milestoneNotified.push(m.key);persist();
+  }catch(e){console.warn('MimiBe milestone notification',e);}
+}
+function checkBabyMilestones(){
+  const m=milestoneForToday();renderMilestoneCard(m);showMilestoneSystemNotification(m);
+}
+function maybeRequestMilestonePermission(){
+  if(!data.birthDate || typeof Notification==='undefined' || Notification.permission!=='default')return;
+  Notification.requestPermission().then(()=>checkBabyMilestones()).catch(()=>{});
 }
 
 // Fotky ukládáme do IndexedDB, protože localStorage je pro fotografie příliš malý.
@@ -480,9 +667,10 @@ async function init(){
   $('#babyNameInput').value=data.babyName||'';
   refreshGenderChoice();
   $('#dueDateInput').value=data.dueDate;
+  if($('#birthDateInput')) $('#birthDateInput').value=data.birthDate||'';
   $('#themeSelect').value=data.theme;
   $('#photoDateInput').value=new Date().toISOString().slice(0,10);
-  renderToday();renderBabyName();updatePregnancy();renderEvents();renderNotes();updateChecklistSummary();
+  renderToday();renderBabyName();updatePregnancy();renderEvents();renderNotes();updateChecklistSummary();checkBabyMilestones();
   try{await photoDB.open();await renderPhotos();}catch(e){console.warn('Fotogalerie není dostupná',e);}
 }
 init();
@@ -693,7 +881,7 @@ document.addEventListener('click',e=>{
 setTimeout(()=>localizeMimiBeBrand(localStorage.getItem('pregnancyPlannerLanguage')||'cs'),0);
 
 // v60 — single robust CZ/EN localization system
-const MIMIBE_EN = {"Těhotenský plánovač": "Pregnancy Planner", "Vyberte jazyk": "Choose language", "Česky": "Czech", "Ahoj,": "Hi,", "maminko": "Mum", "Krásný den! 🌿": "Have a lovely day! 🌿", "Svátek dnes: načítám…": "Name day today: loading…", "Naše miminko": "Our baby", "Zatím bez jména": "No name yet", "Upravit": "Edit", "Jsi ve": "You're in", "týdnu": "week", "Do termínu zbývá": "Until your due date", "dní": "days", "Termín porodu:": "Due date:", "těhotenství": "pregnancy", "Další událost": "Next event", "Zatím nic naplánováno": "Nothing planned yet", "Přidej první kontrolu": "Add your first appointment", "Rychlý přístup": "Quick access", "Kalendář": "Calendar", "Výbavička": "Baby essentials", "Do porodnice": "Hospital bag", "Poznámky": "Notes", "Fotky": "Photos", "Checklisty": "Checklists", "Tvoje poznámky": "Your notes", "Zobrazit vše": "View all", "Zatím žádná poznámka.": "No notes yet.", "Přidat událost": "Add event", "Uložit poznámku": "Save note", "Moje fotky": "My photos", "Kategorie": "Category", "(volitelné)": "(optional)", "Bříško": "Bump", "Ultrazvuk": "Ultrasound", "Těhotenství": "Pregnancy", "Přípravy a výbavička": "Getting ready & essentials", "Rodina": "Family", "Miminko": "Baby", "První okamžiky": "First moments", "Ostatní": "Other", "Datum": "Date", "Fotka": "Photo", "Vybrat nebo vyfotit": "Choose or take a photo", "JPG, PNG nebo fotka z fotoaparátu": "JPG, PNG or a photo from your camera", "Uložit vzpomínku": "Save memory", "Vše": "All", "Přípravy": "Getting ready", "Vzpomínkové video": "Memory video", "Vytvořit video ♡": "Create video ♡", "Z fotek vytvoříš video s jemnými přechody. V Android verzi si budeš moct vybrat i vlastní hudbu z telefonu.": "Turn your photos into a video with gentle transitions. In the Android version, you will also be able to choose your own music from your phone.", "Vytvořit video": "Create video", "Nastavení": "Settings", "Profil": "Profile", "Tvoje jméno": "Your name", "Jméno miminka": "Baby's name", "Můžeš nechat prázdné a doplnit později.": "You can leave this blank and fill it in later.", "Termín porodu": "Due date", "Barevná varianta": "Colour theme", "Neutrální": "Neutral", "Růžová": "Pink", "Modrá": "Baby blue", "Uložit": "Save", "Jazyk aplikace": "App language", "Jazyk": "Language", "O aplikaci": "About the app", "Podpořit vývoj": "Support development", "Aplikace je zdarma. Pokud ti dělá radost, můžeš její další vývoj dobrovolně podpořit.": "The app is free. If you enjoy it, you can voluntarily support its further development.", "Odkaz doplníme později": "Link coming later", "Data a soukromí": "Data & privacy", "Smazat profil": "Delete profile", "Tímto smažeš všechna data aplikace – termín porodu, jméno, události, poznámky, checklisty i uložené fotky.": "This will delete all app data – your due date, name, events, notes, checklists and saved photos.", "Tato akce je nevratná.": "This action cannot be undone.", "Smazat profil a všechna data": "Delete profile and all data", "Domů": "Home", "Checklist": "Checklist", "Přidat": "Add", "Naše vzpomínky ♡": "My memories ♡", "Vzpomínka": "Memory", "Náhled fotky": "Photo preview", "Název události": "Event title", "Nová položka": "New item", "Např. Eliška": "E.g. Emma", "např. Magda": "e.g. Anna", "Místo (volitelné)": "Place (optional)", "Krátký popisek (volitelné)": "Short caption (optional)", "Napiš si poznámku…": "Write a note…", "Zatím žádné poznámky.": "No notes yet.", "Zatím žádné události.": "No events yet.", "Zatím tu žádná fotka není. Přidej první vzpomínku ♡": "No photos yet. Add your first memory ♡", "Postýlka": "Cot", "Kočárek": "Stroller", "Autosedačka": "Car seat", "Plenky": "Nappies", "Body": "Bodysuits", "Overaly": "Sleepsuits", "Doklady": "Documents", "Přezůvky": "Slippers", "Noční košile": "Nightdress", "Hygiena": "Toiletries", "Oblečení pro miminko": "Baby clothes", "nastav termín": "set due date", "Smazat položku": "Delete item"};
+const MIMIBE_EN = {"Těhotenský plánovač": "Pregnancy Planner", "Vyberte jazyk": "Choose language", "Česky": "Czech", "Ahoj,": "Hi,", "maminko": "Mum", "Krásný den! 🌿": "Have a lovely day! 🌿", "Svátek dnes: načítám…": "Name day today: loading…", "Naše miminko": "Our baby", "Zatím bez jména": "No name yet", "Upravit": "Edit", "Jsi ve": "You're in", "týdnu": "week", "Do termínu zbývá": "Until your due date", "dní": "days", "Termín porodu:": "Due date:", "těhotenství": "pregnancy", "Další událost": "Next event", "Zatím nic naplánováno": "Nothing planned yet", "Přidej první kontrolu": "Add your first appointment", "Rychlý přístup": "Quick access", "Kalendář": "Calendar", "Výbavička": "Baby essentials", "Do porodnice": "Hospital bag", "Poznámky": "Notes", "Fotky": "Photos", "Checklisty": "Checklists", "Tvoje poznámky": "Your notes", "Zobrazit vše": "View all", "Zatím žádná poznámka.": "No notes yet.", "Přidat událost": "Add event", "Uložit poznámku": "Save note", "Moje fotky": "My photos", "Kategorie": "Category", "(volitelné)": "(optional)", "Bříško": "Bump", "Ultrazvuk": "Ultrasound", "Těhotenství": "Pregnancy", "Přípravy a výbavička": "Getting ready & essentials", "Rodina": "Family", "Miminko": "Baby", "První okamžiky": "First moments", "Ostatní": "Other", "Datum": "Date", "Fotka": "Photo", "Vybrat nebo vyfotit": "Choose or take a photo", "JPG, PNG nebo fotka z fotoaparátu": "JPG, PNG or a photo from your camera", "Uložit vzpomínku": "Save memory", "Vše": "All", "Přípravy": "Getting ready", "Vzpomínkové video": "Memory video", "Vytvořit video ♡": "Create video ♡", "Z fotek vytvoříš video s jemnými přechody. V Android verzi si budeš moct vybrat i vlastní hudbu z telefonu.": "Turn your photos into a video with gentle transitions. In the Android version, you will also be able to choose your own music from your phone.", "Vytvořit video": "Create video", "Nastavení": "Settings", "Profil": "Profile", "Tvoje jméno": "Your name", "Jméno miminka": "Baby's name", "Můžeš nechat prázdné a doplnit později.": "You can leave this blank and fill it in later.", "Termín porodu": "Due date", "Datum narození miminka": "Baby’s date of birth", "Po narození doplň skutečné datum. MimiBe pak začne počítat věk miminka od narození.": "After birth, enter the actual date. MimiBe will then calculate your baby’s age from birth.", "Barevná varianta": "Colour theme", "Neutrální": "Neutral", "Růžová": "Pink", "Modrá": "Baby blue", "Uložit": "Save", "Jazyk aplikace": "App language", "Jazyk": "Language", "O aplikaci": "About the app", "Podpořit vývoj": "Support development", "Aplikace je zdarma. Pokud ti dělá radost, můžeš její další vývoj dobrovolně podpořit.": "The app is free. If you enjoy it, you can voluntarily support its further development.", "Odkaz doplníme později": "Link coming later", "Data a soukromí": "Data & privacy", "Smazat profil": "Delete profile", "Tímto smažeš všechna data aplikace – termín porodu, jméno, události, poznámky, checklisty i uložené fotky.": "This will delete all app data – your due date, name, events, notes, checklists and saved photos.", "Tato akce je nevratná.": "This action cannot be undone.", "Smazat profil a všechna data": "Delete profile and all data", "Domů": "Home", "Checklist": "Checklist", "Přidat": "Add", "Naše vzpomínky ♡": "My memories ♡", "Vzpomínka": "Memory", "Náhled fotky": "Photo preview", "Název události": "Event title", "Nová položka": "New item", "Např. Eliška": "E.g. Emma", "např. Magda": "e.g. Anna", "Místo (volitelné)": "Place (optional)", "Krátký popisek (volitelné)": "Short caption (optional)", "Napiš si poznámku…": "Write a note…", "Zatím žádné poznámky.": "No notes yet.", "Zatím žádné události.": "No events yet.", "Zatím tu žádná fotka není. Přidej první vzpomínku ♡": "No photos yet. Add your first memory ♡", "Postýlka": "Cot", "Kočárek": "Stroller", "Autosedačka": "Car seat", "Plenky": "Nappies", "Body": "Bodysuits", "Overaly": "Sleepsuits", "Doklady": "Documents", "Přezůvky": "Slippers", "Noční košile": "Nightdress", "Hygiena": "Toiletries", "Oblečení pro miminko": "Baby clothes", "nastav termín": "set due date", "Smazat položku": "Delete item"};
 
 // Translation-only additions for the English interface. No app logic is changed here.
 Object.assign(MIMIBE_EN,{
@@ -907,9 +1095,13 @@ function updateStandalonePregnancyProgress(){
   const fill=document.getElementById('pregnancyProgressFill');
   const label=document.getElementById('pregnancyProgressPercent');
   if(!bar || !fill || !label)return;
-  let pct=0;
-  if(data?.dueDate){
-    const today=new Date(); today.setHours(0,0,0,0);
+  const today=new Date(); today.setHours(0,0,0,0);
+  const postpartum=postpartumStartDate(today);
+  let pct=0,labelText=i18nMsg('Průběh těhotenství','Pregnancy progress');
+  if(postpartum){
+    pct=Math.min(100,Math.max(0,Math.round(dayDiffFloor(postpartum.date,today)/365*100)));
+    labelText=i18nMsg('První rok miminka','Baby’s first year');
+  }else if(data?.dueDate){
     const due=new Date(data.dueDate+'T00:00:00');
     const startDate=new Date(due); startDate.setDate(startDate.getDate()-280);
     let elapsed=Math.floor((today-startDate)/(1000*60*60*24));
@@ -920,8 +1112,9 @@ function updateStandalonePregnancyProgress(){
     const m=(source?.textContent||'').match(/(\d+)\s*%/); if(m)pct=parseInt(m[1],10);
   }
   pct=Math.max(0,Math.min(100,Number.isFinite(pct)?pct:0));
-  fill.style.width=pct+'%'; label.textContent=pct+' %'; bar.setAttribute('aria-valuenow',String(pct)); bar.setAttribute('aria-label',i18nMsg('Průběh těhotenství','Pregnancy progress'));
+  fill.style.width=pct+'%'; label.textContent=pct+' %'; bar.setAttribute('aria-valuenow',String(pct)); bar.setAttribute('aria-label',labelText);
 }
+
 document.addEventListener('DOMContentLoaded',()=>{
   setTimeout(updateStandalonePregnancyProgress,180);
   const old=document.querySelector('#progressRing, .progress-ring');
@@ -1404,11 +1597,32 @@ function drawPhotoFrame(ctx,img,w,h,progress,nextImg=null,transition=0,caption='
   ctx.fillStyle=accent;ctx.globalAlpha=.65;ctx.font=`${Math.round(w*.03)}px serif`;ctx.fillText('♡',w/2,h-32);ctx.globalAlpha=1;
 }
 
-const MEDIABUNNY_URL='https://cdn.jsdelivr.net/npm/mediabunny@1.53.0/dist/bundles/mediabunny.min.mjs';
+const MEDIABUNNY_URLS=[
+  'https://cdn.jsdelivr.net/npm/mediabunny@1.53.0/dist/bundles/mediabunny.min.mjs?mimibe=20260812-v6',
+  'https://unpkg.com/mediabunny@1.53.0/dist/bundles/mediabunny.min.mjs?mimibe=20260812-v6'
+];
 let mediabunnyModulePromise=null;
 function loadMediabunny(){
-  if(!mediabunnyModulePromise) mediabunnyModulePromise=import(MEDIABUNNY_URL);
-  return mediabunnyModulePromise;
+  if(!mediabunnyModulePromise){
+    mediabunnyModulePromise=(async()=>{
+      let lastError=null;
+      for(const url of MEDIABUNNY_URLS){
+        try{
+          const mod=await import(url);
+          if(mod?.Output && mod?.Mp4OutputFormat && mod?.CanvasSource)return mod;
+          throw new Error('Načtený video modul neobsahuje potřebné funkce.');
+        }catch(err){
+          lastError=err;
+          console.warn('MimiBe: video module source failed',url,err);
+        }
+      }
+      throw new Error('Video modul se nepodařilo načíst'+(lastError?.message?': '+lastError.message:''));
+    })();
+  }
+  return mediabunnyModulePromise.catch(err=>{
+    mediabunnyModulePromise=null;
+    throw err;
+  });
 }
 function videoSmoothstep(x){x=Math.max(0,Math.min(1,x));return x*x*(3-2*x);}
 function videoDrawCover(ctx,img,w,h,zoom=1,alpha=1){
@@ -1664,12 +1878,15 @@ async function generateAutomaticMemoryVideo(){
   generate.disabled=true;cancel.disabled=true;progressBox.classList.remove('hidden');preview.classList.add('hidden');download.classList.add('hidden');
 
   const bitmaps=[];
+  let videoStage='start';
   try{
+    videoStage='video-module';
     status.textContent=videoText('Načítám nový video modul…','Loading the new video engine…');
     progressFill.style.width='2%';progressText.textContent='2 %';
     const MB=await loadMediabunny();
     const {Output,Mp4OutputFormat,BufferTarget,CanvasSource,AudioBufferSource,Quality}=MB;
 
+    videoStage='photos';
     status.textContent=videoText('Připravuji fotky…','Preparing photos…');
     const logoImg=await loadMemoryVideoLogo(),babyImg=await loadMemoryVideoBaby();
     const prepared=await prepareVideoDrawables(photos,progressFill,progressText);
@@ -1696,6 +1913,7 @@ async function generateAutomaticMemoryVideo(){
     let audioSource=null,audioBuffer=null;
     if(memoryVideoState.musicChoice!=='none'){
       try{
+        videoStage='audio';
         status.textContent=videoText('Připravuji hudbu…','Preparing music…');
         const musicBlob=await selectedMemoryMusicBlob();
         if(musicBlob){
@@ -1730,6 +1948,7 @@ async function generateAutomaticMemoryVideo(){
       }
     }catch(e){}
 
+    videoStage='render';
     status.textContent=videoText('Vykresluji plynulé video…','Rendering smooth video…');
     for(let frame=0;frame<totalFrames;frame++){
       const t=frame/FPS;
@@ -1776,6 +1995,46 @@ async function generateAutomaticMemoryVideo(){
 }
 
 
+
+function revealClamp01(v){return Math.max(0,Math.min(1,v));}
+function revealLerp(a,b,t){return a+(b-a)*t;}
+
+function drawRevealLightLeak(ctx,w,h,p,fromRight=false){
+  const q=videoSmoothstep(revealClamp01(p));
+  if(q<=0)return;
+  ctx.save();
+  const x=fromRight?w*1.02:-w*.02;
+  const y=h*.42;
+  const radius=w*(.42+.34*q);
+  const g=ctx.createRadialGradient(x,y,0,x,y,radius);
+  g.addColorStop(0,`rgba(255,246,228,${.34*q})`);
+  g.addColorStop(.38,`rgba(255,228,210,${.20*q})`);
+  g.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.globalCompositeOperation='screen';
+  ctx.fillStyle=g;
+  ctx.fillRect(0,0,w,h);
+  ctx.restore();
+}
+
+function drawRevealBokeh(ctx,w,h,p,color='#D9B6A5'){
+  const q=videoSmoothstep(revealClamp01(p));
+  if(q<=0)return;
+  const pts=[
+    [.17,.25,.014,.1],[.28,.70,.010,.8],[.80,.24,.012,1.5],
+    [.73,.69,.016,2.2],[.45,.77,.009,2.9],[.88,.48,.010,3.4]
+  ];
+  ctx.save();
+  pts.forEach(([px,py,r,phase],i)=>{
+    const float=Math.sin(q*Math.PI*2+phase)*h*.009;
+    const a=(.10+.15*(.5+.5*Math.sin(q*Math.PI*2+phase)))*q;
+    ctx.globalAlpha=a;
+    ctx.fillStyle=color;
+    ctx.beginPath();
+    ctx.arc(w*px,h*py-float,w*r,0,Math.PI*2);
+    ctx.fill();
+  });
+  ctx.restore();
+}
 function revealHeartPath(ctx,x,y,size){
   ctx.beginPath();
   ctx.moveTo(x,y+size*.54);
@@ -1809,44 +2068,73 @@ function drawRevealIntro(ctx,w,h,p,logoImg,text){
 function drawRevealPhotoScene(ctx,img,w,h,progress=0,alpha=1){
   const iw=img.naturalWidth||img.width,ih=img.naturalHeight||img.height;
   if(!iw||!ih)return;
-  const p=videoSmoothstep(Math.max(0,Math.min(1,progress)));
+  const raw=revealClamp01(progress);
+  const p=videoSmoothstep(raw);
+  const focus=videoSmoothstep(revealClamp01(raw/.24));
   ctx.save();
   ctx.globalAlpha*=alpha;
   ctx.fillStyle='#F7F3ED';ctx.fillRect(0,0,w,h);
 
-  // Jemná rozostřená černobílá výplň na celé 9:16 pozadí.
+  // Soft monochrome background.
   ctx.save();
   ctx.filter='grayscale(1) blur(26px) brightness(.98) contrast(.90)';
   coverImage(ctx,img,w,h,1.12,0,0,1);
   ctx.restore();
-  ctx.fillStyle='rgba(247,243,237,.15)';ctx.fillRect(0,0,w,h);
+  ctx.fillStyle='rgba(247,243,237,.16)';ctx.fillRect(0,0,w,h);
 
-  // Celá fotografie bez ořezu, jen velmi pomalý filmový pohyb.
+  // Full photo, almost still: 2.2 % slow zoom + blur-to-sharp at the start.
   const base=Math.min((w*.94)/iw,(h*.91)/ih);
-  const scale=base*(1.015+.025*p);
+  const scale=base*(1.010+.022*p);
   const dw=iw*scale,dh=ih*scale;
-  const drift=(p-.5)*h*.012;
-  ctx.filter='grayscale(1) brightness(1.03) contrast(.96)';
+  const drift=(p-.5)*h*.008;
+  const blur=(1-focus)*5.5;
+  ctx.filter=`grayscale(1) brightness(1.03) contrast(.97) blur(${blur.toFixed(2)}px)`;
   ctx.drawImage(img,(w-dw)/2,(h-dh)/2+drift,dw,dh);
   ctx.filter='none';
 
-  // Lehoučké zesvětlení okrajů.
-  const grad=ctx.createRadialGradient(w/2,h*.48,w*.15,w/2,h*.48,h*.72);
+  // Cream vignette keeps all shots visually consistent.
+  const grad=ctx.createRadialGradient(w/2,h*.48,w*.16,w/2,h*.48,h*.72);
   grad.addColorStop(0,'rgba(255,255,255,0)');
-  grad.addColorStop(1,'rgba(247,243,237,.18)');
+  grad.addColorStop(1,'rgba(247,243,237,.20)');
   ctx.fillStyle=grad;ctx.fillRect(0,0,w,h);
   ctx.restore();
 }
 function drawRevealPhotoTimeline(ctx,imgs,w,h,t,photoDur,fadeDur){
-  const step=photoDur-fadeDur;let j=Math.floor(t/step);j=Math.max(0,Math.min(imgs.length-1,j));const local=t-j*step;
-  if(j>0 && local<fadeDur){const blend=videoSmoothstep(local/fadeDur);drawRevealPhotoScene(ctx,imgs[j-1],w,h,1,1-blend);drawRevealPhotoScene(ctx,imgs[j],w,h,local/photoDur,blend);}else drawRevealPhotoScene(ctx,imgs[j],w,h,Math.min(1,local/photoDur),1);
+  const step=photoDur-fadeDur;
+  let j=Math.floor(t/step);
+  j=Math.max(0,Math.min(imgs.length-1,j));
+  const local=t-j*step;
+
+  if(j>0&&local<fadeDur){
+    const blend=videoSmoothstep(revealClamp01(local/fadeDur));
+    drawRevealPhotoScene(ctx,imgs[j-1],w,h,1,1-blend);
+    drawRevealPhotoScene(ctx,imgs[j],w,h,local/photoDur,blend);
+    // Warm light leak peaks in the middle of every transition, side alternates.
+    const leak=Math.sin(blend*Math.PI);
+    drawRevealLightLeak(ctx,w,h,leak,j%2===0);
+  }else{
+    drawRevealPhotoScene(ctx,imgs[j],w,h,Math.min(1,local/photoDur),1);
+  }
 }
 function drawRevealQuestion(ctx,w,h,p,logoImg){
-  ctx.fillStyle='#F7F3ED';ctx.fillRect(0,0,w,h);ctx.save();ctx.globalAlpha=videoSmoothstep(Math.min(1,p*1.5));drawRevealLogo(ctx,w,h,logoImg,.14,.31);ctx.textAlign='center';ctx.fillStyle='#65534A';ctx.font=`700 ${Math.round(w*.07)}px Arial, sans-serif`;ctx.fillText(videoText('Tipnete si?','Can you guess?'),w/2,h*.50);drawRevealHeart(ctx,w*.41,h*.66,w*.065,'#E7A8B9',.82);drawRevealHeart(ctx,w*.59,h*.66,w*.065,'#9ABAD8',.82);ctx.restore();
+  const q=videoSmoothstep(revealClamp01(p));
+  ctx.fillStyle='#F7F3ED';ctx.fillRect(0,0,w,h);
+  ctx.save();
+  ctx.globalAlpha=videoSmoothstep(Math.min(1,q*1.35));
+  drawRevealLogo(ctx,w,h,logoImg,.14,.31);
+  ctx.textAlign='center';
+  ctx.fillStyle='#65534A';
+  ctx.font=`700 ${Math.round(w*.07)}px Arial, sans-serif`;
+  ctx.fillText(videoText('Tipnete si?','Can you guess?'),w/2,h*.50);
+  drawRevealHeart(ctx,w*.41,h*.66,w*.058,'#E7A8B9',.74);
+  drawRevealHeart(ctx,w*.59,h*.66,w*.058,'#9ABAD8',.74);
+  ctx.restore();
+  drawRevealBokeh(ctx,w,h,q,'#C9A779');
 }
-function drawRevealPolaroid(ctx,img,cx,cy,w,h,angle){
+function drawRevealPolaroid(ctx,img,cx,cy,w,h,angle,alpha=1){
   if(!img)return;
   ctx.save();
+  ctx.globalAlpha*=alpha;
   ctx.translate(cx,cy);
   ctx.rotate(angle);
 
@@ -1877,12 +2165,13 @@ function drawRevealPolaroid(ctx,img,cx,cy,w,h,angle){
   ctx.restore();
 }
 
-function drawRevealCollage(ctx,w,h,images,gender,logoImg,babyName,musicCredit,booties){
+function drawRevealCollage(ctx,w,h,images,gender,logoImg,babyName,musicCredit,booties,progress=1){
   const isGirl=gender==='girl';
   const accent=isGirl?'#D58DA7':'#78ABD0';
   const pale=isGirl?'#F5E5EB':'#E7F1F7';
   const dark='#65544B';
   const gold='#C8A577';
+  const p=videoSmoothstep(revealClamp01(progress));
 
   ctx.fillStyle='#F8F3EC';
   ctx.fillRect(0,0,w,h);
@@ -1890,38 +2179,38 @@ function drawRevealCollage(ctx,w,h,images,gender,logoImg,babyName,musicCredit,bo
   const glow=ctx.createRadialGradient(w*.20,h*.12,0,w*.20,h*.12,w*.55);
   glow.addColorStop(0,'rgba(255,255,255,.9)');
   glow.addColorStop(1,'rgba(255,255,255,0)');
-  ctx.fillStyle=glow;
-  ctx.fillRect(0,0,w,h);
+  ctx.fillStyle=glow;ctx.fillRect(0,0,w,h);
 
-  // Real MimiBe logo from assets/mimibe-logo.svg
   drawRevealLogo(ctx,w,h,logoImg,.085,.34);
 
-  drawRevealPolaroid(ctx,images[0],w*.34,h*.34,w*.49,h*.32,-.065);
-  drawRevealPolaroid(ctx,images[1]||images[0],w*.65,h*.44,w*.47,h*.30,.070);
+  // Polaroids slide gently from opposite sides.
+  const p1=videoSmoothstep(revealClamp01(p/.48));
+  const p2=videoSmoothstep(revealClamp01((p-.12)/.50));
+  const x1=revealLerp(-w*.18,w*.34,p1);
+  const x2=revealLerp(w*1.18,w*.65,p2);
+  drawRevealPolaroid(ctx,images[0],x1,h*.34,w*.49,h*.32,-.065,p1);
+  drawRevealPolaroid(ctx,images[1]||images[0],x2,h*.44,w*.47,h*.30,.070,p2);
 
-  // subtle decorations
-  drawRevealHeart(ctx,w*.19,h*.55,w*.020,accent,.38);
-  drawRevealHeart(ctx,w*.79,h*.27,w*.016,accent,.31);
-  drawRevealHeart(ctx,w*.50,h*.51,w*.022,accent,.44);
+  const deco=videoSmoothstep(revealClamp01((p-.30)/.45));
+  drawRevealHeart(ctx,w*.19,h*.55,w*.020,accent,.38*deco);
+  drawRevealHeart(ctx,w*.79,h*.27,w*.016,accent,.31*deco);
+  drawRevealHeart(ctx,w*.50,h*.51,w*.022,accent,.44*deco);
 
-  ctx.fillStyle=gold;
+  ctx.save();ctx.globalAlpha=deco;ctx.fillStyle=gold;
   [[.12,.22,3],[.86,.50,3.5],[.20,.64,2.5],[.74,.62,2.7],[.88,.19,2.4]].forEach(q=>{
     ctx.beginPath();ctx.arc(w*q[0],h*q[1],q[2],0,Math.PI*2);ctx.fill();
-  });
+  });ctx.restore();
 
-  ctx.textAlign='center';
+  const textA=videoSmoothstep(revealClamp01((p-.38)/.38));
+  ctx.save();ctx.globalAlpha=textA;ctx.textAlign='center';
   ctx.fillStyle='#9B8068';
   ctx.font=`600 ${Math.round(w*.031)}px Georgia, serif`;
   ctx.fillText(videoText('NAŠE MALÉ','OUR LITTLE'),w/2,h*.665);
-
   ctx.fillStyle=accent;
   ctx.font=`italic ${Math.round(w*.070)}px Georgia, serif`;
   ctx.fillText(videoText('překvapení','surprise'),w/2,h*.716);
 
-  ctx.fillStyle=pale;
-  roundRectVideo(ctx,w*.29,h*.745,w*.42,h*.060,24);
-  ctx.fill();
-
+  ctx.fillStyle=pale;roundRectVideo(ctx,w*.29,h*.745,w*.42,h*.060,24);ctx.fill();
   ctx.fillStyle=accent;
   ctx.font=`800 ${Math.round(w*.041)}px Arial, sans-serif`;
   ctx.fillText(isGirl?videoText('HOLČIČKA','GIRL'):videoText('CHLAPEČEK','BOY'),w/2,h*.786);
@@ -1931,7 +2220,8 @@ function drawRevealCollage(ctx,w,h,images,gender,logoImg,babyName,musicCredit,bo
     ctx.font=`600 ${Math.round(w*.035)}px Georgia, serif`;
     ctx.fillText((babyName||'').trim(),w/2,h*.827);
   }
-  // Kreslené botičky vynechány; v další verzi je může nahradit realistická fotografie.
+
+  // Clean placeholder area – no cartoon booties.
   ctx.strokeStyle='rgba(200,165,119,.45)';
   ctx.lineWidth=1.5;
   ctx.beginPath();
@@ -1939,59 +2229,56 @@ function drawRevealCollage(ctx,w,h,images,gender,logoImg,babyName,musicCredit,bo
   ctx.moveTo(w*.54,h*.885);ctx.lineTo(w*.65,h*.885);
   ctx.stroke();
   drawRevealHeart(ctx,w*.50,h*.885,w*.018,accent,.50);
+  ctx.restore();
 
-  if(musicCredit){
+  if(musicCredit&&p>.62){
+    const ca=videoSmoothstep(revealClamp01((p-.62)/.20));
+    ctx.save();ctx.globalAlpha=ca;ctx.textAlign='center';
     ctx.fillStyle='#8C7A70';
     ctx.font=`500 ${Math.round(w*.018)}px Arial, sans-serif`;
     ctx.fillText(videoText('Hudba: ','Music: ')+musicCredit[0],w/2,h*.975);
+    ctx.restore();
   }
-}
 
+  drawRevealBokeh(ctx,w,h,deco,accent);
+}
 function drawRevealFinal(ctx,w,h,p,gender,logoImg,babyName,musicCredit,endingImages,booties){
   const isGirl=gender==='girl';
   const accent=isGirl?'#D58DA7':'#78ABD0';
   const tint=isGirl?'#F6E5EC':'#E5F1F8';
   const deep=isGirl?'#B75F80':'#4C88B3';
-  const pp=Math.max(0,Math.min(1,p));
+  const pp=videoSmoothstep(revealClamp01(p));
 
-  if(pp<.55){
-    const q=pp/.55;
-    ctx.fillStyle='#F8F3EC';
-    ctx.fillRect(0,0,w,h);
-    drawRevealLogo(ctx,w,h,logoImg,.10,.32);
-    ctx.textAlign='center';
+  // First 42 % = the actual gender reveal.
+  if(pp<.42){
+    const q=pp/.42;
+    ctx.fillStyle='#F8F3EC';ctx.fillRect(0,0,w,h);
+    drawRevealLogo(ctx,w,h,logoImg,.11,.32);
 
-    if(q<.50){
-      ctx.fillStyle='#65544B';
-      ctx.font=`700 ${Math.round(w*.060)}px Georgia, serif`;
-      ctx.fillText(videoText('Tipnete si?','Can you guess?'),w/2,h*.35);
-      ctx.fillStyle='#8D7A70';
-      ctx.font=`500 ${Math.round(w*.030)}px Arial, sans-serif`;
-      ctx.fillText(videoText('Holčička, nebo chlapeček?','Girl or boy?'),w/2,h*.397);
-    }
-
-    // Proper heart-shaped reveal mask.
-    const hp=videoSmoothstep(Math.max(0,Math.min(1,(q-.16)/.62)));
-    const heartSize=w*(.052+hp*1.72);
+    const hp=videoSmoothstep(revealClamp01((q-.06)/.63));
+    const heartSize=w*(.048+hp*1.72);
     ctx.save();
-    revealHeartPath(ctx,w/2,h*.51,heartSize);
+    revealHeartPath(ctx,w/2,h*.50,heartSize);
     ctx.clip();
-    const rg=ctx.createRadialGradient(w/2,h*.48,0,w/2,h*.48,h*.74);
+    const rg=ctx.createRadialGradient(w/2,h*.47,0,w/2,h*.47,h*.76);
     rg.addColorStop(0,tint);
     rg.addColorStop(1,accent);
-    ctx.fillStyle=rg;
-    ctx.fillRect(0,0,w,h);
+    ctx.fillStyle=rg;ctx.fillRect(0,0,w,h);
     ctx.restore();
 
-    if(q>.67){
-      const a=videoSmoothstep((q-.67)/.33);
-      ctx.save();
-      ctx.globalAlpha=a;
-      ctx.fillStyle=tint;
-      ctx.fillRect(0,0,w,h);
-      drawRevealLogo(ctx,w,h,logoImg,.10,.32);
-      ctx.textAlign='center';
-      ctx.fillStyle=deep;
+    // Soft white flash at the peak of the heart transition.
+    const flash=Math.max(0,1-Math.abs(q-.66)/.15);
+    if(flash>0){
+      ctx.save();ctx.globalAlpha=.40*videoSmoothstep(flash);
+      ctx.fillStyle='#FFFFFF';ctx.fillRect(0,0,w,h);ctx.restore();
+    }
+
+    if(q>.58){
+      const a=videoSmoothstep(revealClamp01((q-.58)/.30));
+      ctx.save();ctx.globalAlpha=a;
+      ctx.fillStyle=tint;ctx.fillRect(0,0,w,h);
+      drawRevealLogo(ctx,w,h,logoImg,.11,.32);
+      ctx.textAlign='center';ctx.fillStyle=deep;
       ctx.font=`800 ${Math.round(w*.062)}px Arial, sans-serif`;
       ctx.fillText(
         isGirl?videoText('BUDE TO HOLČIČKA ♡','IT’S A GIRL ♡'):videoText('BUDE TO CHLAPEČEK ♡','IT’S A BOY ♡'),
@@ -2002,22 +2289,24 @@ function drawRevealFinal(ctx,w,h,p,gender,logoImg,babyName,musicCredit,endingIma
         ctx.font=`italic 600 ${Math.round(w*.047)}px Georgia, serif`;
         ctx.fillText((babyName||'').trim(),w/2,h*.61);
       }
+      drawRevealBokeh(ctx,w,h,a,accent);
       ctx.restore();
     }
     return;
   }
 
-  const cp=videoSmoothstep((pp-.55)/.45);
-  ctx.save();
-  ctx.globalAlpha=cp;
-  drawRevealCollage(ctx,w,h,endingImages||[],gender,logoImg,babyName,musicCredit,booties);
-  ctx.restore();
+  // Remaining 58 % = slow final collage.
+  const cp=revealClamp01((pp-.42)/.58);
+  drawRevealCollage(ctx,w,h,endingImages||[],gender,logoImg,babyName,musicCredit,booties,cp);
 
-  if(cp<1){
+  // Last ~12 % slowly fades into MimiBe cream + logo.
+  if(cp>.88){
+    const fade=videoSmoothstep((cp-.88)/.12);
     ctx.save();
-    ctx.globalAlpha=1-cp;
-    ctx.fillStyle=tint;
-    ctx.fillRect(0,0,w,h);
+    ctx.globalAlpha=fade;
+    ctx.fillStyle='#F7F3ED';ctx.fillRect(0,0,w,h);
+    ctx.globalAlpha=fade;
+    drawRevealLogo(ctx,w,h,logoImg,.48,.42);
     ctx.restore();
   }
 }
@@ -2028,9 +2317,11 @@ async function generateGenderRevealVideo(){
   memoryVideoState.working=true;
   const generate=document.getElementById('generateMemoryVideo'),cancel=document.getElementById('cancelMemoryVideo'),progressBox=document.getElementById('memoryVideoProgress'),progressFill=document.getElementById('memoryVideoProgressFill'),progressText=document.getElementById('memoryVideoProgressText'),status=document.getElementById('memoryVideoStatus'),preview=document.getElementById('memoryVideoPreview'),download=document.getElementById('downloadMemoryVideo');
   generate.disabled=true;cancel.disabled=true;progressBox.classList.remove('hidden');preview.classList.add('hidden');download.classList.add('hidden');const bitmaps=[];
+  let revealStage='start';
   try{
+    revealStage='video-module';
     status.textContent=videoText('Připravuji odhalení…','Preparing the reveal…');progressFill.style.width='2%';progressText.textContent='2 %';
-    const MB=await loadMediabunny();const {Output,Mp4OutputFormat,BufferTarget,CanvasSource,AudioBufferSource,Quality}=MB;const logoImg=await loadMemoryVideoLogo();
+    const MB=await loadMediabunny();const {Output,Mp4OutputFormat,BufferTarget,CanvasSource,AudioBufferSource,Quality}=MB;revealStage='photos';const logoImg=await loadMemoryVideoLogo();
     const prepared=await prepareVideoDrawables(photos,progressFill,progressText);
     const userBitmaps=[...prepared.drawables];
     bitmaps.push(...userBitmaps);
@@ -2052,7 +2343,7 @@ async function generateGenderRevealVideo(){
       ? [userBitmaps[0],userBitmaps[1]]
       : [userBitmaps[0],userBitmaps[0]];
 
-    const W=720,H=1280,FPS=30,FRAME=1/FPS,INTRO=2.4,INTRO_FADE=.6,PHOTO=2.05,FADE=.60,QUESTION=2.15,QFADE=.45,REVEAL=5.4;
+    const W=720,H=1280,FPS=30,FRAME=1/FPS,INTRO=3.2,INTRO_FADE=.85,PHOTO=3.3,FADE=.85,QUESTION=2.8,QFADE=.70,REVEAL=10.0;
     const photoStart=INTRO-INTRO_FADE,step=PHOTO-FADE,photoEnd=photoStart+(revealScenes.length-1)*step+PHOTO,questionStart=photoEnd-QFADE,revealStart=questionStart+QUESTION-QFADE,totalSec=revealStart+REVEAL,totalFrames=Math.ceil(totalSec*FPS);
     const canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;const ctx=canvas.getContext('2d',{alpha:false});if(!ctx)throw new Error('Canvas 2D není dostupný');
     const output=new Output({format:new Mp4OutputFormat(),target:new BufferTarget()});const videoSource=new CanvasSource(canvas,{codec:'avc',quality:new Quality({bitrate:4_000_000})});output.addVideoTrack(videoSource,{frameRate:FPS});
@@ -2070,11 +2361,11 @@ async function generateGenderRevealVideo(){
       else if(t<revealStart)drawRevealQuestion(ctx,W,H,(t-questionStart)/QUESTION,logoImg);
       else if(t<revealStart+QFADE){const x=videoSmoothstep((t-revealStart)/QFADE);ctx.clearRect(0,0,W,H);ctx.save();ctx.globalAlpha=1-x;drawRevealQuestion(ctx,W,H,1,logoImg);ctx.restore();ctx.save();ctx.globalAlpha=x;drawRevealFinal(ctx,W,H,0,memoryVideoState.revealGender,logoImg,data?.babyName||'',musicCredit,endingImages,booties);ctx.restore();}
       else drawRevealFinal(ctx,W,H,(t-revealStart)/REVEAL,memoryVideoState.revealGender,logoImg,data?.babyName||'',musicCredit,endingImages,booties);
-      await videoSource.add(t,FRAME,{keyFrame:frame===0||frame%(FPS*2)===0});const pct=12+Math.round((frame+1)/totalFrames*84);progressFill.style.width=pct+'%';progressText.textContent=pct+' %';if(frame%12===0)await new Promise(r=>setTimeout(r,0));
+      await videoSource.add(t,FRAME,{keyFrame:frame===0||frame%(FPS*2)===0});const pct=12+Math.round((frame+1)/totalFrames*84);progressFill.style.width=pct+'%';progressText.textContent=pct+' %';if(frame%8===0)await new Promise(r=>setTimeout(r,0));
     }
     videoSource.close();await audioWritePromise;status.textContent=videoText('Dokončuji MP4…','Finalising MP4…');progressFill.style.width='97%';progressText.textContent='97 %';await output.finalize();
     const blob=new Blob([output.target.buffer],{type:'video/mp4'});if(memoryVideoState.url)URL.revokeObjectURL(memoryVideoState.url);memoryVideoState.url=URL.createObjectURL(blob);preview.src=memoryVideoState.url;preview.classList.remove('hidden');download.href=memoryVideoState.url;download.download='MimiBe-kluk-nebo-holka.mp4';download.classList.remove('hidden');progressFill.style.width='100%';progressText.textContent='100 %';status.textContent=videoText('Hotovo ♡ Překvapení je připravené.','Done ♡ Your surprise is ready.');
-  }catch(err){console.error('MimiBe reveal video error',err);status.textContent=videoText('Odhalovací video se nepodařilo vytvořit.','The reveal video could not be created.');alert(videoText('Odhalovací video se nepodařilo vytvořit. MimiBe narazilo na problém při zpracování obrazu nebo zvuku.','The reveal video could not be created. MimiBe encountered a problem while processing the image or audio.'));}
+  }catch(err){console.error('MimiBe reveal video error',err);status.textContent=videoText('Odhalovací video se nepodařilo vytvořit.','The reveal video could not be created.');const detail=(err?.message||String(err||'')).slice(0,180);alert(videoText(`Odhalovací video se nepodařilo vytvořit. Krok: ${revealStage}.${detail?'\n'+detail:''}`,`The reveal video could not be created. Step: ${revealStage}.${detail?'\n'+detail:''}`));}
   finally{bitmaps.forEach(closeVideoBitmap);memoryVideoState.working=false;generate.disabled=false;cancel.disabled=false;refreshMemoryVideoSelection();}
 }
 
